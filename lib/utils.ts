@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import bcrypt from 'bcryptjs';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -32,4 +33,45 @@ export function formatDate(date: string): string {
     month: '2-digit',
     year: 'numeric'
   }).format(new Date(date));
+}
+
+// FUNGSI BARU YANG DIPERLUKAN:
+
+/**
+ * Validate password strength
+ */
+export function validatePassword(password: string): boolean {
+  // Minimum 8 characters
+  if (password.length < 8) {
+    return false;
+  }
+  
+  // At least 1 uppercase, 1 lowercase, 1 number
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  
+  return hasUpperCase && hasLowerCase && hasNumbers;
+}
+
+/**
+ * Hash password using bcrypt
+ */
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+}
+
+/**
+ * Compare password with hash
+ */
+export async function comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+  return await bcrypt.compare(password, hashedPassword);
+}
+
+/**
+ * Generate random token
+ */
+export function generateToken(length: number = 32): string {
+  return require('crypto').randomBytes(length).toString('hex');
 }
