@@ -1,40 +1,45 @@
 {
   "name": "sips-app",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "build:prod": "npm run lint && npm run type-check && npm run build"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.9",
-    "@heroicons/react": "^2.2.0",
-    "@types/sqlite3": "^3.1.11",
-    "bcryptjs": "^2.4.3",
-    "clsx": "^2.0.0",
-    "jsonwebtoken": "^9.0.2",
     "next": "14.0.0",
-    "nodemailer": "^6.9.7",
-    "pg": "^8.11.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "sqlite3": "^5.1.7",
-    "tailwind-merge": "^2.0.0"
+    "pg": "^8.11.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.7",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0",
+    "@headlessui/react": "^2.1.1",
+    "@heroicons/react": "^2.0.18"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
-    "@types/nodemailer": "^6.4.21",
-    "@types/pg": "^8.15.6",
-    "@types/react": "18.3.26",
+    "@types/react": "^18",
     "@types/react-dom": "^18",
-    "autoprefixer": "^10.4.21",
+    "@types/pg": "^8.10.9",
+    "@types/bcryptjs": "^2.4.4",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/nodemailer": "^6.4.14",
+    "typescript": "^5",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8.4.31",
     "eslint": "^8",
     "eslint-config-next": "14.0.0",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18",
-    "typescript": "5.9.3"
+    "@types/bcrypt": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
