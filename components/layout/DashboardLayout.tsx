@@ -1,3 +1,4 @@
+// components/layout/DashboardLayout.tsx
 'use client';
 
 import { useState } from 'react';
@@ -15,8 +16,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* HANYA SATU Sidebar component */}
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       
+      {/* Main content area - pl-64 HANYA untuk desktop */}
       <div className="lg:pl-64 flex flex-col flex-1">
         <Header setSidebarOpen={setSidebarOpen} />
         

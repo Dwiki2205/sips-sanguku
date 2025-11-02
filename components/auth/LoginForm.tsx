@@ -21,7 +21,10 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      console.log('Sending login request...'); // DEBUG LOG
+      
+      // === PERBAIKAN: GUNAKAN PATH YANG BENAR ===
+      const response = await fetch('/api/auth/login', { // ← UBAH DARI '/api/auth/login' ke '/api/login'
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,15 +32,20 @@ export default function LoginForm() {
         body: JSON.stringify(formData),
       });
 
+      console.log('Login response status:', response.status); // DEBUG LOG
+      
       const data = await response.json();
+      console.log('Login response data:', data); // DEBUG LOG
 
       if (response.ok) {
+        console.log('Login successful, redirecting...'); // DEBUG LOG
         // Login berhasil, AuthContext akan handle redirect
         login(data.token, data.user);
       } else {
         setError(data.error || 'Login gagal');
       }
     } catch (err) {
+      console.error('Login error:', err); // DEBUG LOG
       setError('Terjadi kesalahan jaringan');
     } finally {
       setLoading(false);
@@ -107,6 +115,7 @@ export default function LoginForm() {
         type="submit"
         loading={loading}
         className="w-full"
+        disabled={loading}
       >
         {loading ? 'Memproses...' : 'Login'}
       </Button>

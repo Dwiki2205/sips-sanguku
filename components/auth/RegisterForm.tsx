@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -19,12 +18,24 @@ export default function RegisterForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Validasi client-side
+    if (formData.password.length < 8) {
+      setError('Password harus minimal 8 karakter');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Password dan konfirmasi password tidak sama');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/auth/registrasi', {
@@ -38,8 +49,8 @@ export default function RegisterForm() {
       const data = await response.json();
 
       if (response.ok) {
-        // Registrasi berhasil, langsung login
-        login(data.token, data.user);
+        // Registrasi berhasil, langsung redirect ke login
+        router.push('/login');
       } else {
         setError(data.error || 'Registrasi gagal');
       }
@@ -115,7 +126,7 @@ export default function RegisterForm() {
           name="password"
           type="password"
           required
-          placeholder="Minimal 6 karakter"
+          placeholder="Minimal 8 karakter"
           value={formData.password}
           onChange={handleChange}
           disabled={loading}

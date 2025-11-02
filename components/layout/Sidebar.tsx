@@ -1,3 +1,4 @@
+// components/layout/Sidebar.tsx
 'use client';
 
 import { Fragment } from 'react';
@@ -22,7 +23,6 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  // Navigation items based on user role
   const getNavigation = () => {
     const basePath = `/${user?.role_name.toLowerCase()}`;
     
@@ -54,9 +54,9 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar - HANYA visible di mobile */}
       <Transition.Root show={open} as={Fragment}>
-        <Dialog as="div" className="relative z-40 lg:hidden" onClose={setOpen}>
+        <Dialog as="div" className="relative z-50 lg:hidden" onClose={setOpen}>
           <Transition.Child
             as={Fragment}
             enter="transition-opacity ease-linear duration-300"
@@ -79,7 +79,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <Dialog.Panel className="relative flex w-full max-w-xs flex-1 flex-col bg-white pt-5 pb-4">
+              <Dialog.Panel className="relative flex w-full max-w-xs flex-1 flex-col bg-white">
                 <Transition.Child
                   as={Fragment}
                   enter="ease-in-out duration-300"
@@ -101,7 +101,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                   </div>
                 </Transition.Child>
 
-                <div className="flex flex-shrink-0 items-center px-4">
+                <div className="flex flex-shrink-0 items-center px-4 pt-5">
                   <h1 className="text-xl font-bold text-gray-900">SIPS</h1>
                 </div>
 
@@ -156,13 +156,13 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               </Dialog.Panel>
             </Transition.Child>
             <div className="w-14 flex-shrink-0" aria-hidden="true">
-              {/* Dummy element to force sidebar to shrink to fit close icon */}
+              {/* Dummy element */}
             </div>
           </div>
         </Dialog>
       </Transition.Root>
 
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar - HANYA visible di desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-grow flex-col overflow-y-auto border-r border-gray-200 bg-white pt-5">
           <div className="flex flex-shrink-0 items-center px-4">

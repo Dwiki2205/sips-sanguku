@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { hashPassword, generateToken, setAuthCookie } from '@/lib/auth';
-import { generateUserId, validateEmail, validatePhone, validatePassword } from '@/lib/utils';
+import { hashPassword } from '@/lib/auth';
+import { generateUserId, validateEmail, validatePhone } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,12 +57,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validasi password (lebih ringan untuk development)
-    if (password.length < 3) {
+    // Validasi password - MINIMAL 8 KARAKTER
+    if (password.length < 8) {
       return NextResponse.json(
         { 
           success: false,
-          error: 'Password harus minimal 3 karakter' 
+          error: 'Password harus minimal 8 karakter' 
         },
         { status: 400 }
       );
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password (akan return plain text di development)
+    // Hash password
     const hashedPassword = await hashPassword(password);
 
     // Generate user ID
@@ -124,33 +124,18 @@ export async function POST(request: NextRequest) {
 
     const role = roleResult.rows[0];
 
-    // Generate token
-    const tokenPayload = {
-      pengguna_id: newUser.pengguna_id,
-      username: newUser.username,
-      role: role.role_name,
-      permissions: role.permissions
-    };
-    
-    const token = generateToken(tokenPayload);
-
     const userResponse = {
       ...newUser,
       role_name: role.role_name,
       permissions: role.permissions
     };
 
-    const response = NextResponse.json({
+    // Return success tanpa token
+    return NextResponse.json({
       success: true,
-      message: 'Registrasi berhasil',
-      user: userResponse,
-      token
+      message: 'Registrasi berhasil! Silakan login dengan akun Anda.',
+      user: userResponse
     });
-
-    // Set HTTP-only cookie
-    await setAuthCookie(token);
-
-    return response;
 
   } catch (error) {
     console.error('Registration error:', error);

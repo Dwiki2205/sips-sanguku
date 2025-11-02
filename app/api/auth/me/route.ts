@@ -23,23 +23,45 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user data from database
-    const result = await query(
-      `SELECT p.*, r.role_name, r.permissions 
-       FROM pengguna p 
-       JOIN role r ON p.role_id = r.role_id 
-       WHERE p.pengguna_id = $1 OR p.username = $2`,
-      [decoded.pengguna_id, decoded.username]
-    );
+    let user;
 
-    if (result.rows.length === 0) {
+    // CARI BERDASARKAN USER TYPE
+    if (decoded.user_type === 'pelanggan') {
+      // Cari di tabel pelanggan
+      const result = await query(
+        `SELECT 
+           pelanggan_id as pengguna_id,
+           nama_lengkap as nama,
+           username,
+           email,
+           telepon,
+           alamat,
+           tanggal_registrasi as tanggal_bergabung,
+           'pelanggan' as role_name,
+           '["view_booking","add_booking","view_membership","add_membership"]' as permissions
+         FROM pelanggan 
+         WHERE username = $1 OR pelanggan_id = $2`,
+        [decoded.username, decoded.pengguna_id]
+      );
+      user = result.rows[0];
+    } else {
+      // Cari di tabel pengguna
+      const result = await query(
+        `SELECT p.*, r.role_name, r.permissions 
+         FROM pengguna p 
+         JOIN role r ON p.role_id = r.role_id 
+         WHERE p.pengguna_id = $1 OR p.username = $2`,
+        [decoded.pengguna_id, decoded.username]
+      );
+      user = result.rows[0];
+    }
+
+    if (!user) {
       return NextResponse.json(
         { error: 'User tidak ditemukan' },
         { status: 404 }
       );
     }
-
-    const user = result.rows[0];
 
     // Response tanpa password
     const userResponse = {
@@ -48,12 +70,13 @@ export async function GET(request: NextRequest) {
       username: user.username,
       email: user.email,
       telepon: user.telepon,
-      role_id: user.role_id,
+      alamat: user.alamat, // khusus pelanggan
       role_name: user.role_name,
       permissions: typeof user.permissions === 'string' 
         ? JSON.parse(user.permissions) 
         : user.permissions,
-      tanggal_bergabung: user.tanggal_bergabung
+      tanggal_bergabung: user.tanggal_bergabung,
+      user_type: decoded.user_type || 'pengguna'
     };
 
     return NextResponse.json(userResponse);

@@ -136,7 +136,7 @@ export default function PelangganDashboard() {
   }
 
   return (
-    <DashboardLayout> {/* HAPUS prop user di sini */}
+    // <DashboardLayout> {/* HAPUS prop user di sini */}
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -312,6 +312,6 @@ export default function PelangganDashboard() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
+    // </DashboardLayout>
   );
 }
