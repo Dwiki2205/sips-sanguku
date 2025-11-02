@@ -1,7 +1,8 @@
-// api/booking/route.ts - PERBAIKAN
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import pool from '@/lib/db';
+
+export const dynamic = 'force-dynamic' // Tambahkan ini
 
 export async function GET(request: NextRequest) {
   try {
