@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import pool from '@/lib/db';
 
+// Tambahkan ini untuk menandai route sebagai dynamic
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
