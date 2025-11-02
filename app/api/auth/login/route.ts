@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import query from '@/lib/database';
+import db from '@/lib/db';
 import { generateToken, setAuthCookie } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     const { username, password }: { username: string; password: string } = await request.json();
 
-    // Validasi input
     if (!username || !password) {
       return NextResponse.json(
         { 
@@ -17,16 +16,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cari pengguna berdasarkan username
-    const result = await query(
+    // PostgreSQL query only
+    const result = await db.query(
       `SELECT p.*, r.role_name, r.permissions 
        FROM pengguna p 
        JOIN role r ON p.role_id = r.role_id 
        WHERE p.username = $1`,
       [username]
     );
+    
+    const user = result.rows[0];
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return NextResponse.json(
         { 
           success: false,
@@ -36,9 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = result.rows[0];
-
-    // Verifikasi password (plain text untuk development)
+    // Verifikasi password
     if (password !== user.password) {
       return NextResponse.json(
         { 
@@ -54,9 +53,7 @@ export async function POST(request: NextRequest) {
       pengguna_id: user.pengguna_id,
       username: user.username,
       role: user.role_name,
-      permissions: typeof user.permissions === 'string' 
-        ? JSON.parse(user.permissions) 
-        : user.permissions
+      permissions: user.permissions
     };
     
     const token = generateToken(tokenPayload);
@@ -70,9 +67,7 @@ export async function POST(request: NextRequest) {
       telepon: user.telepon,
       role_id: user.role_id,
       role_name: user.role_name,
-      permissions: typeof user.permissions === 'string' 
-        ? JSON.parse(user.permissions) 
-        : user.permissions,
+      permissions: user.permissions,
       tanggal_bergabung: user.tanggal_bergabung
     };
 
@@ -83,15 +78,7 @@ export async function POST(request: NextRequest) {
       token
     });
 
-    // Set HTTP-only cookie
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 24 hours
-      path: '/',
-    });
-
+    await setAuthCookie(token);
     return response;
 
   } catch (error) {

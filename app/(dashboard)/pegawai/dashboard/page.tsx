@@ -1,226 +1,179 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import StatsCard from '@/components/dashboard/StatsCard';
-import { Card, CardHeader, CardContent } from '@/components/ui/Card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
-interface DashboardStats {
-  totalBooking: number;
-  totalMembership: number;
-  pendapatanHariIni: number;
-  bookingHariIni: number;
-}
-
-interface Booking {
-  booking_id: string;
-  nama_lengkap: string;
-  tanggal_booking: string;
-  jam_mulai: string;
-  jam_selesai: string;
-  status: string;
-  total_biaya: number;
-  metode_pembayaran: string;
-}
-
-export default function PegawaiDashboard() {
-  const { user, loading: authLoading } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function PegawaiDashboardPage() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalMemberships: 0,
+    pendingBookings: 0
+  });
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
+    fetchStats();
+  }, []);
 
-      try {
-        // Get dashboard stats
-        const statsResponse = await fetch('/api/dashboard/stats?role=pegawai');
-        const statsData = await statsResponse.json();
+  const fetchStats = async () => {
+    try {
+      const [bookingsRes, membershipsRes] = await Promise.all([
+        fetch('/api/booking'),
+        fetch('/api/membership')
+      ]);
+
+      const bookingsData = await bookingsRes.json();
+      const membershipsData = await membershipsRes.json();
+
+      if (bookingsData.success && membershipsData.success) {
+        const bookings = bookingsData.data || [];
+        const memberships = membershipsData.data || [];
         
-        if (statsData.success) {
-          setStats(statsData.data);
-        }
-
-        // Get today's bookings
-        const today = new Date().toISOString().split('T')[0];
-        const bookingsResponse = await fetch(`/api/booking?tanggal=${today}&limit=10`);
-        const bookingsData = await bookingsResponse.json();
+        const pendingBookings = bookings.filter((b: any) => b.status === 'pending').length;
         
-        if (bookingsData.success) {
-          setTodayBookings(bookingsData.data);
-        }
-
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
+        setStats({
+          totalBookings: bookings.length,
+          totalMemberships: memberships.length,
+          pendingBookings
+        });
       }
-    };
-
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    } catch (error) {
+      console.error('Error fetching stats:', error);
     }
   };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'Dikonfirmasi';
-      case 'pending':
-        return 'Menunggu';
-      case 'completed':
-        return 'Selesai';
-      case 'cancelled':
-        return 'Dibatalkan';
-      default:
-        return status;
-    }
-  };
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memuat dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Pegawai</h1>
-          <p className="text-gray-600">Monitor booking dan aktivitas hari ini</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard Pegawai</h1>
+      </div>
+
+      {/* Welcome Message */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Selamat Datang, {user?.nama}!
+        </h2>
+        <p className="text-gray-600 mb-4">
+          Anda login sebagai <strong>Pegawai</strong>. Anda memiliki akses untuk melihat data booking dan membership.
+        </p>
+        
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <Link 
+            href="/pegawai/booking"
+            className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 hover:bg-indigo-100 transition-colors"
+          >
+            <h3 className="font-semibold text-indigo-900">📋 Lihat Booking</h3>
+            <p className="text-sm text-indigo-700 mt-2">
+              Kelola dan lihat semua data booking pelanggan
+            </p>
+          </Link>
+          
+          <Link 
+            href="/pegawai/membership" 
+            className="bg-green-50 border border-green-200 rounded-lg p-4 hover:bg-green-100 transition-colors"
+          >
+            <h3 className="font-semibold text-green-900">👥 Lihat Membership</h3>
+            <p className="text-sm text-green-700 mt-2">
+              Lihat data membership pelanggan
+            </p>
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white overflow-hidden shadow-sm rounded-lg">
+          <div className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
+                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Booking</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.totalBookings}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatsCard
-              title="Total Booking"
-              value={stats.totalBooking}
-              icon="📅"
-              description="Semua waktu"
-            />
-            <StatsCard
-              title="Membership Aktif"
-              value={stats.totalMembership}
-              icon="👥"
-              description="Pelanggan aktif"
-            />
-            <StatsCard
-              title="Pendapatan Hari Ini"
-              value={formatCurrency(stats.pendapatanHariIni)}
-              icon="💰"
-              description="Dari booking confirmed"
-            />
-            <StatsCard
-              title="Booking Hari Ini"
-              value={stats.bookingHariIni}
-              icon="🔄"
-              description="Total booking hari ini"
-            />
-          </div>
-        )}
-
-        {/* Today's Schedule */}
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold text-gray-900">Jadwal Hari Ini</h2>
-            <p className="text-sm text-gray-600">
-              {new Date().toLocaleDateString('id-ID', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </p>
-          </CardHeader>
-          <CardContent>
-            {todayBookings.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Waktu</TableHead>
-                    <TableHead>Pelanggan</TableHead>
-                    <TableHead>Durasi</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Pembayaran</TableHead>
-                    <TableHead>Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {todayBookings.map((booking) => (
-                    <TableRow key={booking.booking_id}>
-                      <TableCell className="font-medium">
-                        {formatTime(booking.jam_mulai)} - {formatTime(booking.jam_selesai)}
-                      </TableCell>
-                      <TableCell>{booking.nama_lengkap}</TableCell>
-                      <TableCell>
-                        {(() => {
-                          const start = new Date(`2000-01-01T${booking.jam_mulai}`);
-                          const end = new Date(`2000-01-01T${booking.jam_selesai}`);
-                          const diff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-                          return `${diff} jam`;
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                          {getStatusText(booking.status)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {booking.metode_pembayaran || 'Belum bayar'}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(booking.total_biaya)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Tidak ada booking untuk hari ini</p>
+        <div className="bg-white overflow-hidden shadow-sm rounded-lg">
+          <div className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
+                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Membership</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.totalMemberships}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow-sm rounded-lg">
+          <div className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Pending Booking</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.pendingBookings}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </DashboardLayout>
+
+      {/* Recent Activity */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Akses Cepat</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link 
+            href="/pegawai/booking"
+            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex-shrink-0 bg-blue-100 p-3 rounded-lg">
+              <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="ml-4">
+              <h4 className="text-sm font-medium text-gray-900">Kelola Booking</h4>
+              <p className="text-sm text-gray-500">Lihat dan kelola semua booking</p>
+            </div>
+          </Link>
+
+          <Link 
+            href="/pegawai/membership"
+            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+              <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div className="ml-4">
+              <h4 className="text-sm font-medium text-gray-900">Kelola Membership</h4>
+              <p className="text-sm text-gray-500">Lihat data membership pelanggan</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
