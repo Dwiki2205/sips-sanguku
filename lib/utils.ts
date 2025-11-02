@@ -1,3 +1,4 @@
+// @/lib/utils.ts
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import bcrypt from 'bcryptjs';
@@ -27,7 +28,7 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function formatDate(date: string): string {
+export function formatDate(date: string | Date): string {
   return new Intl.DateTimeFormat('id-ID', {
     day: '2-digit',
     month: '2-digit',
@@ -35,23 +36,69 @@ export function formatDate(date: string): string {
   }).format(new Date(date));
 }
 
-// FUNGSI BARU YANG DIPERLUKAN:
+export function formatDateTime(date: string | Date): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
 
 /**
- * Validate password strength
+ * Validate password strength dengan detail error messages
  */
-export function validatePassword(password: string): boolean {
-  // Minimum 8 characters
+export interface PasswordValidationResult {
+  isValid: boolean;
+  errors: string[];
+  score: number; // 0-4
+}
+
+export function validatePassword(password: string): PasswordValidationResult {
+  const errors: string[] = [];
+  let score = 0;
+
+  // Length check
   if (password.length < 8) {
-    return false;
+    errors.push('Password harus minimal 8 karakter');
+  } else {
+    score += 1;
   }
-  
-  // At least 1 uppercase, 1 lowercase, 1 number
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  
-  return hasUpperCase && hasLowerCase && hasNumbers;
+
+  // Uppercase check
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password harus mengandung minimal 1 huruf besar (A-Z)');
+  } else {
+    score += 1;
+  }
+
+  // Lowercase check
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password harus mengandung minimal 1 huruf kecil (a-z)');
+  } else {
+    score += 1;
+  }
+
+  // Number check
+  if (!/\d/.test(password)) {
+    errors.push('Password harus mengandung minimal 1 angka (0-9)');
+  } else {
+    score += 1;
+  }
+
+  // Optional: Special character check
+  // if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  //   errors.push('Password harus mengandung minimal 1 karakter spesial');
+  // } else {
+  //   score += 1;
+  // }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    score
+  };
 }
 
 /**
@@ -74,4 +121,23 @@ export async function comparePassword(password: string, hashedPassword: string):
  */
 export function generateToken(length: number = 32): string {
   return require('crypto').randomBytes(length).toString('hex');
+}
+
+/**
+ * Sanitize input untuk mencegah XSS
+ */
+export function sanitizeInput(input: string): string {
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
+
+/**
+ * Delay utility
+ */
+export function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
