@@ -1,8 +1,24 @@
+// api/booking/route.ts - PERBAIKAN
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyToken } from '@/lib/auth';
 import pool from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
+    // VERIFY AUTH FIRST
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '') || 
+                  request.cookies.get('token')?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit');
     const status = searchParams.get('status');
@@ -14,9 +30,21 @@ export async function GET(request: NextRequest) {
     `;
     const params: any[] = [];
 
-    if (status) {
-      query += ' WHERE b.status = $1';
-      params.push(status);
+    // AUTO-FILTER berdasarkan user role
+    if (decoded.role === 'pelanggan') {
+      query += ' WHERE p.username = $1';
+      params.push(decoded.username);
+      
+      if (status) {
+        query += ' AND b.status = $2';
+        params.push(status);
+      }
+    } else {
+      // Untuk owner/pegawai, bisa filter semua
+      if (status) {
+        query += ' WHERE b.status = $1';
+        params.push(status);
+      }
     }
 
     query += ' ORDER BY b.tanggal_booking DESC, b.jam_mulai DESC';
@@ -35,46 +63,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Get bookings error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Terjadi kesalahan server' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const { 
-      pelanggan_id, 
-      tanggal_booking, 
-      jam_mulai, 
-      jam_selesai, 
-      jenis_layanan, 
-      total_biaya, 
-      metode_pembayaran 
-    } = await request.json();
-
-    // Generate booking ID
-    const booking_id = 'BKG' + Date.now().toString().slice(-7);
-
-    const result = await pool.query(
-      `INSERT INTO booking (
-        booking_id, pelanggan_id, tanggal_booking, jam_mulai, jam_selesai, 
-        jenis_layanan, total_biaya, metode_pembayaran
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-      RETURNING *`,
-      [booking_id, pelanggan_id, tanggal_booking, jam_mulai, jam_selesai, 
-       jenis_layanan, total_biaya, metode_pembayaran]
-    );
-
-    return NextResponse.json({
-      success: true,
-      message: 'Booking berhasil dibuat',
-      data: result.rows[0]
-    });
-
-  } catch (error) {
-    console.error('Create booking error:', error);
     return NextResponse.json(
       { success: false, error: 'Terjadi kesalahan server' },
       { status: 500 }

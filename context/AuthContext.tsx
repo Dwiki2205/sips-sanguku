@@ -36,8 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // AuthContext - tambahkan handling untuk pelanggan
   const login = (token: string, userData: User) => {
     setUser(userData);
+    
     // Redirect berdasarkan role
     const role = userData.role_name.toLowerCase();
     if (role === 'owner') {
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else if (role === 'pelanggan') {
       router.push('/pelanggan/dashboard');
     }
-  };
+};
 
   const logout = async () => {
     try {

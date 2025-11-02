@@ -1,33 +1,36 @@
+// lib/database.ts
 import pool from './db';
-import { devDB } from './db-dev';
 
-// Check if we can connect to PostgreSQL
-async function checkPostgreSQLConnection(): Promise<boolean> {
-  try {
-    const client = await pool.connect();
-    await client.query('SELECT 1');
-    client.release();
-    return true;
-  } catch (error) {
-    console.log('❌ PostgreSQL connection failed, using SQLite fallback');
-    return false;
+let devDB: any = null;
+
+async function getDevDB() {
+  if (!devDB && process.env.NODE_ENV === 'development') {
+    try {
+      const module = await import('./db-dev');
+      devDB = module.devDB;
+    } catch (error) {
+      console.error('Gagal load devDB:', error);
+    }
   }
+  return devDB;
 }
 
-// Main database helper dengan fallback
 export async function query(sql: string, params: any[] = []) {
-  const isPostgreSQLAvailable = await checkPostgreSQLConnection();
-  
-  if (isPostgreSQLAvailable) {
+  try {
+    const client = await pool.connect();
     try {
-      console.log('✅ Using PostgreSQL');
-      return await pool.query(sql, params);
-    } catch (error) {
-      console.log('❌ PostgreSQL query failed, falling back to SQLite');
-      return devDB.query(sql, params);
+      console.log('Using PostgreSQL (Neon.tech)');
+      return await client.query(sql, params);
+    } finally {
+      client.release();
     }
-  } else {
-    return devDB.query(sql, params);
+  } catch (error) {
+    console.log('PostgreSQL gagal, fallback ke SQLite...');
+    if (process.env.NODE_ENV === 'development') {
+      const db = await getDevDB();
+      if (db) return db.query(sql, params);
+    }
+    throw new Error('Database tidak tersedia');
   }
 }
 

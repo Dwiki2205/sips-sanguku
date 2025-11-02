@@ -1,20 +1,50 @@
-// Fallback database untuk development ketika Neon.tech down
-import sqlite3 from 'sqlite3';
+// lib/db-dev.ts
 import path from 'path';
+import type { Database, RunResult } from 'sqlite3';
 
-const dbPath = path.join(process.cwd(), 'sips-dev.db');
+let db: Database | null = null;
+let initialized = false;
 
-// Create database connection
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err);
-  } else {
-    console.log('✅ Connected to SQLite database');
-    initializeDatabase();
+// Hanya jalankan di development
+async function ensureDatabase(): Promise<Database> {
+  if (db && initialized) return db;
+
+  if (process.env.NODE_ENV !== 'development') {
+    throw new Error('SQLite dev database hanya tersedia di mode development');
   }
-});
 
-function initializeDatabase() {
+  try {
+    // Dynamic import → tidak di-bundle di production
+    const sqlite3 = await import('sqlite3');
+    const sqlite = sqlite3.verbose();
+    const dbPath = path.join(process.cwd(), 'sips-dev.db');
+
+    return new Promise<Database>((resolve, reject) => {
+      const database = new sqlite.Database(dbPath, (err: Error | null) => {
+        if (err) {
+          console.error('Error opening SQLite:', err.message);
+          reject(err);
+        } else {
+          console.log('Connected to SQLite dev database:', dbPath);
+          db = database;
+          // Pindahkan initializeDatabase ke sini
+          initializeDatabase(database)
+            .then(() => {
+              initialized = true;
+              resolve(db!);
+            })
+            .catch(reject);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Failed to load sqlite3 module:', error);
+    throw new Error('SQLite tidak tersedia. Pastikan `sqlite3` terinstall sebagai devDependency.');
+  }
+}
+
+// Inisialisasi tabel + data default
+async function initializeDatabase(database: Database): Promise<void> {
   const initSQL = `
     CREATE TABLE IF NOT EXISTS role (
       role_id TEXT PRIMARY KEY,
@@ -68,18 +98,6 @@ function initializeDatabase() {
     );
   `;
 
-  // Execute initialization
-  db.exec(initSQL, (err) => {
-    if (err) {
-      console.error('Error initializing database:', err);
-    } else {
-      console.log('✅ Database initialized');
-      insertDefaultData();
-    }
-  });
-}
-
-function insertDefaultData() {
   const defaultDataSQL = `
     INSERT OR IGNORE INTO role (role_id, role_name, permissions, deskripsi) VALUES
     ('R001', 'Owner', '["all"]', 'Pemilik usaha dengan akses penuh'),
@@ -104,52 +122,59 @@ function insertDefaultData() {
     ('MEM002', 'PLG002', '2024-01-01', 'active', 'Silver', '2024-06-30');
   `;
 
-  db.exec(defaultDataSQL, (err) => {
-    if (err) {
-      console.error('Error inserting default data:', err);
-    } else {
-      console.log('✅ Default data inserted');
-    }
+  return new Promise<void>((resolve, reject) => {
+    database.exec(initSQL + defaultDataSQL, (err: Error | null) => {
+      if (err) {
+        console.error('Error initializing SQLite database:', err.message);
+        reject(err);
+      } else {
+        console.log('SQLite database initialized with default data');
+        resolve();
+      }
+    });
   });
 }
 
-// Promise wrapper untuk SQLite
+// QUERY WRAPPER
 export const devDB = {
-  query: (sql: string, params: any[] = []): Promise<{ rows: any[] }> => {
+  query: async (sql: string, params: any[] = []): Promise<{ rows: any[] }> => {
+    if (process.env.NODE_ENV !== 'development') {
+      throw new Error('devDB hanya bisa digunakan di development');
+    }
+
+    const database = await ensureDatabase();
+    const trimmedSql = sql.trim().toUpperCase();
+
     return new Promise((resolve, reject) => {
-      console.log('🔧 Using Development Database - SQLite');
-      
-      if (sql.trim().toUpperCase().startsWith('SELECT')) {
-        db.all(sql, params, (err, rows) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve({ rows });
-          }
+      console.log('Using Development Database - SQLite');
+
+      if (trimmedSql.startsWith('SELECT')) {
+        database.all(sql, params, (err: Error | null, rows: any[]) => {
+          if (err) reject(err);
+          else resolve({ rows });
         });
-      } else if (sql.trim().toUpperCase().startsWith('INSERT')) {
-        db.run(sql, params, function(err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve({ rows: [{ id: this.lastID }] });
+      }
+      else if (['INSERT', 'UPDATE', 'DELETE'].some(op => trimmedSql.startsWith(op))) {
+        database.run(
+          sql,
+          params,
+          function (this: RunResult, err: Error | null) {
+            if (err) {
+              reject(err);
+            } else {
+              if (trimmedSql.startsWith('INSERT')) {
+                resolve({ rows: [{ id: this.lastID }] });
+              } else {
+                resolve({ rows: [{ changes: this.changes }] });
+              }
+            }
           }
-        });
-      } else if (sql.trim().toUpperCase().startsWith('UPDATE') || sql.trim().toUpperCase().startsWith('DELETE')) {
-        db.run(sql, params, function(err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve({ rows: [{ changes: this.changes }] });
-          }
-        });
-      } else {
-        db.exec(sql, (err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve({ rows: [] });
-          }
+        );
+      }
+      else {
+        database.exec(sql, (err: Error | null) => {
+          if (err) reject(err);
+          else resolve({ rows: [] });
         });
       }
     });

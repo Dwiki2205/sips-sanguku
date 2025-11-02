@@ -23,7 +23,7 @@ interface Membership {
   tier_membership: string;
   status_keaktifan: string;
   expired_date: string;
-  tanggal_daftar?: string; // Ditambahkan karena digunakan di template
+  tanggal_daftar?: string;
 }
 
 export default function PelangganDashboard() {
@@ -37,30 +37,69 @@ export default function PelangganDashboard() {
       try {
         // Get user data
         const userResponse = await fetch('/api/auth/me');
+        if (!userResponse.ok) {
+          throw new Error('Failed to fetch user data');
+        }
         const userData = await userResponse.json();
+        setUser(userData);
         
-        if (userData.success) {
-          setUser(userData.user);
-          
-          // Get user's bookings
-          const bookingsResponse = await fetch('/api/booking?limit=5');
-          const bookingsData = await bookingsResponse.json();
-          
-          if (bookingsData.success) {
-            setMyBookings(bookingsData.data.slice(0, 3));
-          }
+        // === POIN 3: TAMBAHKAN AUTH HEADERS ===
+        // Fungsi untuk get token dari cookies
+        const getToken = () => {
+          return document.cookie
+            .split('; ')
+            .find(row => row.startsWith('token='))
+            ?.split('=')[1];
+        };
 
-          // Get user's membership
-          const membershipResponse = await fetch('/api/membership');
-          const membershipData = await membershipResponse.json();
+        const token = getToken();
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+        // === END POIN 3 ===
+
+        // Get user's bookings DENGAN AUTH HEADER
+        try {
+          const bookingsResponse = await fetch('/api/booking?limit=5', {
+            headers: headers  // ← INI YANG DITAMBAH
+          });
           
-          if (membershipData.success) {
-            setMyMembership(membershipData.data[0] || null);
+          if (bookingsResponse.ok) {
+            const bookingsData = await bookingsResponse.json();
+            if (bookingsData.success && bookingsData.data) {
+              setMyBookings(bookingsData.data.slice(0, 3));
+            }
+          } else {
+            console.warn('Failed to fetch bookings:', bookingsResponse.status);
           }
+        } catch (bookingError) {
+          console.error('Error fetching bookings:', bookingError);
         }
 
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        // Get user's membership DENGAN AUTH HEADER
+        try {
+          const membershipResponse = await fetch('/api/membership', {
+            headers: headers  // ← INI YANG DITAMBAH
+          });
+          
+          if (membershipResponse.ok) {
+            const membershipData = await membershipResponse.json();
+            if (membershipData.success && membershipData.data && membershipData.data.length > 0) {
+              setMyMembership(membershipData.data[0]);
+            }
+          } else {
+            console.warn('Failed to fetch membership:', membershipResponse.status);
+          }
+        } catch (membershipError) {
+          console.error('Error fetching membership:', membershipError);
+        }
+
+        } catch (error: any) {
+          console.error('Error fetching dashboard data:', error);
+          if (error.message?.includes('401') || error.message?.includes('Token')) {
+            window.location.href = '/login';
+          }
       } finally {
         setLoading(false);
       }
@@ -69,6 +108,7 @@ export default function PelangganDashboard() {
     fetchData();
   }, []);
 
+  // ... rest of the code tetap sama
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
