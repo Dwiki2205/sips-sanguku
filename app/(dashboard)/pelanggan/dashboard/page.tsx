@@ -23,6 +23,7 @@ interface Membership {
   tier_membership: string;
   status_keaktifan: string;
   expired_date: string;
+  tanggal_daftar?: string; // Ditambahkan karena digunakan di template
 }
 
 export default function PelangganDashboard() {
@@ -41,17 +42,12 @@ export default function PelangganDashboard() {
         if (userData.success) {
           setUser(userData.user);
           
-          // For demo, we'll use a fixed pelanggan_id
-          // In real app, you'd get this from the user data
-          const pelangganId = 'PLG001'; // This should come from user data
-          
           // Get user's bookings
           const bookingsResponse = await fetch('/api/booking?limit=5');
           const bookingsData = await bookingsResponse.json();
           
           if (bookingsData.success) {
-            // Filter user's bookings (in real app, filter by pelanggan_id)
-            setMyBookings(bookingsData.data.slice(0, 3)); // Demo only
+            setMyBookings(bookingsData.data.slice(0, 3));
           }
 
           // Get user's membership
@@ -59,8 +55,7 @@ export default function PelangganDashboard() {
           const membershipData = await membershipResponse.json();
           
           if (membershipData.success) {
-            // Find user's membership (in real app, filter by pelanggan_id)
-            setMyMembership(membershipData.data[0] || null); // Demo only
+            setMyMembership(membershipData.data[0] || null);
           }
         }
 
@@ -101,7 +96,7 @@ export default function PelangganDashboard() {
   }
 
   return (
-    <DashboardLayout user={user}>
+    <DashboardLayout> {/* HAPUS prop user di sini */}
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -236,7 +231,9 @@ export default function PelangganDashboard() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-gray-600">Tanggal Daftar</p>
-                      <p className="font-medium">{formatDate(myMembership.tanggal_daftar)}</p>
+                      <p className="font-medium">
+                        {myMembership.tanggal_daftar ? formatDate(myMembership.tanggal_daftar) : 'Tidak tersedia'}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-600">Berlaku Hingga</p>
