@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button} from '@/components/ui';
+import { Button } from '@/components/ui';
 import BookingList from '@/components/booking/BookingList';
 import BookingForm from '@/components/booking/BookingForm';
 import { Booking, CreateBookingData } from '@/types/booking';
@@ -30,7 +30,7 @@ export default function OwnerBookingPage() {
         setShowForm(false);
         router.refresh();
       } else {
-        alert(result.error);
+        alert(result.error || 'Gagal membuat booking');
       }
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -65,7 +65,7 @@ export default function OwnerBookingPage() {
         setEditingBooking(null);
         router.refresh();
       } else {
-        alert(result.error);
+        alert(result.error || 'Gagal mengupdate booking');
       }
     } catch (error) {
       console.error('Error updating booking:', error);
@@ -88,7 +88,7 @@ export default function OwnerBookingPage() {
       if (result.success) {
         router.refresh();
       } else {
-        alert(result.error);
+        alert(result.error || 'Gagal menghapus booking');
       }
     } catch (error) {
       console.error('Error deleting booking:', error);

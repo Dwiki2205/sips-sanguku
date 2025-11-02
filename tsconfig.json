@@ -1,84 +1,30 @@
 {
   "compilerOptions": {
-    /* Language and Environment */
     "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "es6"
-    ],
+    "lib": ["dom", "dom.iterable", "es6"],
     "allowJs": true,
-    "checkJs": false,
-    "jsx": "preserve",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    /* Modules */
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "moduleDetection": "force",
-    "noEmit": true,
+    "jsx": "preserve",
+    "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/lib/*": [
-        "./lib/*"
-      ],
-      "@/types/*": [
-        "./types/*"
-      ],
-      "@/context/*": [
-        "./context/*"
-      ],
-      "@/hooks/*": [
-        "./hooks/*"
-      ],
-      "@/constants/*": [
-        "./constants/*"
-      ],
-      "@/app/*": [
-        "./app/*"
-      ],
-      "@/public/*": [
-        "./public/*"
-      ]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/context/*": ["./context/*"],
+      "@/types/*": ["./types/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/constants/*": ["./constants/*"],
+      "@/public/*": ["./public/*"]
     },
-    /* JavaScript Support */
-    "allowSyntheticDefaultImports": true,
-    /* Emit */
-    "noEmitOnError": false,
-    /* Interop Constraints */
-    "esModuleInterop": true,
-    "allowUmdGlobalAccess": true,
-    "forceConsistentCasingInFileNames": true,
-    /* Type Checking */
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "useUnknownInCatchVariables": true,
-    "alwaysStrict": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
-    /* Completeness */
-    "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
-    "incremental": true,
     "plugins": [
       {
         "name": "next"
@@ -89,31 +35,9 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "app/**/*.ts",
-    "app/**/*.tsx",
-    "components/**/*.ts",
-    "components/**/*.tsx",
-    "lib/**/*.ts",
-    "types/**/*.ts",
-    "context/**/*.ts",
-    "context/**/*.tsx",
-    "hooks/**/*.ts",
-    "constants/**/*.ts",
-    "middleware.ts"
+    ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    ".next",
-    "out",
-    "dist",
-    "build",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "cypress",
-    "**/__tests__/**",
-    "**/__mocks__/**"
+    "node_modules"
   ]
 }
