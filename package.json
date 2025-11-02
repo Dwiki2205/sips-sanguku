@@ -8,9 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "build:prod": "npm run lint && npm run type-check && npm run build",
-    "postinstall": "npm run type-check || echo \"Type check skipped\"",
-    "vercel-build": "npm run build"
+    "build:prod": "npm run lint && npm run type-check && npm run build"
+  
   },
   "dependencies": {
     "@headlessui/react": "^2.1.1",
