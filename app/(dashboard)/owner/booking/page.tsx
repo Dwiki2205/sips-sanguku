@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Button from '@/components/ui/Button';
+import { Button} from '@/components/ui';
 import BookingList from '@/components/booking/BookingList';
 import BookingForm from '@/components/booking/BookingForm';
 import { Booking, CreateBookingData } from '@/types/booking';
