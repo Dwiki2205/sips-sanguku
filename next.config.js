@@ -4,10 +4,10 @@ const nextConfig = {
     serverComponentsExternalPackages: ['pg', 'bcryptjs']
   },
   env: {
-    DATABASE_URL: process.env.DATABASE_URL,
-    JWT_SECRET: process.env.JWT_SECRET,
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    BASE_URL: process.env.BASE_URL
+    DATABASE_URL: process.env.DATABASE_URL || 'postgresql://localhost:5432/sips_sanguku',
+    JWT_SECRET: process.env.JWT_SECRET || 'fallback-jwt-secret-key-for-development',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    BASE_URL: process.env.BASE_URL || 'http://localhost:3000'
   },
   // Enable static exports if needed
   output: 'standalone',
@@ -36,6 +36,18 @@ const nextConfig = {
         ],
       },
     ]
+  },
+  // Tambahkan untuk menghindari edge runtime issues
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
   },
 }
 
