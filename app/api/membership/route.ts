@@ -1,12 +1,10 @@
+// app/api/membership/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import pool from '@/lib/db';
 
-export const dynamic = 'force-dynamic' // Tambahkan ini
-
 export async function GET(request: NextRequest) {
   try {
-    // VERIFY AUTH FIRST
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '') || 
                   request.cookies.get('token')?.value;
@@ -27,19 +25,18 @@ export async function GET(request: NextRequest) {
         m.*,
         p.nama_lengkap,
         p.email,
-        p.telepon
+        p.telepon,
+        p.alamat
       FROM membership m
       JOIN pelanggan p ON m.pelanggan_id = p.pelanggan_id
     `;
 
     const params: any[] = [];
 
-    // AUTO-FILTER berdasarkan user yang login
     if (decoded.role === 'pelanggan') {
       query += ' WHERE p.username = $1';
       params.push(decoded.username);
     } else {
-      // Untuk owner/pegawai, bisa filter by pelanggan_id jika diberikan
       const pelanggan_id = searchParams.get('pelanggan_id');
       if (pelanggan_id) {
         query += ' WHERE m.pelanggan_id = $1';
@@ -50,10 +47,20 @@ export async function GET(request: NextRequest) {
     query += ' ORDER BY m.tanggal_daftar DESC';
 
     const result = await pool.query(query, params);
+
+    // Validasi data
+    const validStatuses = ['active', 'inactive', 'expired'];
+    const validTiers = ['Silver', 'Gold', 'Platinum'];
+    
+    const validatedData = result.rows.map((row: any) => ({
+      ...row,
+      status_keaktifan: validStatuses.includes(row.status_keaktifan) ? row.status_keaktifan : 'active',
+      tier_membership: validTiers.includes(row.tier_membership) ? row.tier_membership : 'Silver'
+    }));
     
     return NextResponse.json({
       success: true,
-      data: result.rows
+      data: validatedData
     });
 
   } catch (error) {

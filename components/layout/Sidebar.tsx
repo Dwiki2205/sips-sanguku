@@ -18,6 +18,19 @@ interface SidebarProps {
   setOpen: (open: boolean) => void;
 }
 
+// Warna custom - sesuaikan dengan kebutuhan Anda
+const SIDEBAR_COLORS = {
+  background: 'bg-blue-900', // Warna background sidebar
+  text: 'text-white', // Warna teks utama
+  textMuted: 'text-blue-200', // Warna teks secondary
+  hover: 'bg-blue-800', // Warna hover
+  active: 'bg-blue-700', // Warna item active
+  border: 'border-blue-800', // Warna border
+  logo: 'text-white', // Warna logo
+  icon: 'text-blue-300', // Warna icon default
+  iconActive: 'text-white', // Warna icon active
+};
+
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -33,14 +46,14 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         icon: HomeIcon 
       },
       { 
-        name: 'Booking', 
-        href: `${basePath}/booking`, 
-        icon: CalendarIcon 
-      },
-      { 
         name: 'Membership', 
         href: `${basePath}/membership`, 
         icon: UserGroupIcon 
+      },
+      { 
+        name: 'Booking', 
+        href: `${basePath}/booking`, 
+        icon: CalendarIcon 
       },
     ];
   };
@@ -54,7 +67,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile sidebar - HANYA visible di mobile */}
+      {/* Mobile sidebar */}
       <Transition.Root show={open} as={Fragment}>
         <Dialog as="div" className="relative z-50 lg:hidden" onClose={setOpen}>
           <Transition.Child
@@ -79,7 +92,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <Dialog.Panel className="relative flex w-full max-w-xs flex-1 flex-col bg-white">
+              <Dialog.Panel className={`relative flex w-full max-w-xs flex-1 flex-col ${SIDEBAR_COLORS.background}`}>
                 <Transition.Child
                   as={Fragment}
                   enter="ease-in-out duration-300"
@@ -102,7 +115,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                 </Transition.Child>
 
                 <div className="flex flex-shrink-0 items-center px-4 pt-5">
-                  <h1 className="text-xl font-bold text-gray-900">SIPS</h1>
+                  <h1 className={`text-xl font-bold ${SIDEBAR_COLORS.logo}`}>SIPS</h1>
                 </div>
 
                 <div className="mt-5 h-0 flex-1 overflow-y-auto">
@@ -115,14 +128,14 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                           href={item.href}
                           className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                             isActive
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              ? `${SIDEBAR_COLORS.active} ${SIDEBAR_COLORS.text}`
+                              : `${SIDEBAR_COLORS.textMuted} hover:${SIDEBAR_COLORS.hover} hover:${SIDEBAR_COLORS.text}`
                           }`}
                           onClick={() => setOpen(false)}
                         >
                           <item.icon
                             className={`mr-4 h-6 w-6 flex-shrink-0 ${
-                              isActive ? 'text-gray-500' : 'text-gray-400 group-hover:text-gray-500'
+                              isActive ? SIDEBAR_COLORS.iconActive : SIDEBAR_COLORS.icon
                             }`}
                             aria-hidden="true"
                           />
@@ -133,21 +146,21 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                   </nav>
                 </div>
 
-                <div className="flex flex-shrink-0 border-t border-gray-200 p-4">
+                <div className={`flex flex-shrink-0 border-t ${SIDEBAR_COLORS.border} p-4`}>
                   <div className="group block flex-shrink-0">
                     <div className="flex items-center">
                       <div>
-                        <div className="text-base font-medium text-gray-700">
+                        <div className={`text-base font-medium ${SIDEBAR_COLORS.text}`}>
                           {user?.nama}
                         </div>
-                        <div className="text-sm font-medium text-gray-500 capitalize">
+                        <div className={`text-sm font-medium ${SIDEBAR_COLORS.textMuted} capitalize`}>
                           {user?.role_name}
                         </div>
                       </div>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="mt-2 text-sm text-red-600 hover:text-red-500"
+                      className="mt-2 text-sm text-red-300 hover:text-red-100"
                     >
                       Logout
                     </button>
@@ -162,11 +175,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         </Dialog>
       </Transition.Root>
 
-      {/* Desktop sidebar - HANYA visible di desktop */}
+      {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-grow flex-col overflow-y-auto border-r border-gray-200 bg-white pt-5">
+        <div className={`flex flex-grow flex-col overflow-y-auto border-r ${SIDEBAR_COLORS.border} ${SIDEBAR_COLORS.background} pt-5`}>
           <div className="flex flex-shrink-0 items-center px-4">
-            <h1 className="text-xl font-bold text-gray-900">SIPS</h1>
+            <h1 className={`text-xl font-bold ${SIDEBAR_COLORS.logo}`}>SIPS</h1>
           </div>
 
           <div className="mt-5 flex flex-1 flex-col">
@@ -179,13 +192,13 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                     href={item.href}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                       isActive
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? `${SIDEBAR_COLORS.active} ${SIDEBAR_COLORS.text}`
+                        : `${SIDEBAR_COLORS.textMuted} hover:${SIDEBAR_COLORS.hover} hover:${SIDEBAR_COLORS.text}`
                     }`}
                   >
                     <item.icon
                       className={`mr-3 h-6 w-6 flex-shrink-0 ${
-                        isActive ? 'text-gray-500' : 'text-gray-400 group-hover:text-gray-500'
+                        isActive ? SIDEBAR_COLORS.iconActive : SIDEBAR_COLORS.icon
                       }`}
                       aria-hidden="true"
                     />
@@ -195,20 +208,20 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               })}
             </nav>
 
-            <div className="flex flex-shrink-0 border-t border-gray-200 p-4">
+            <div className={`flex flex-shrink-0 border-t ${SIDEBAR_COLORS.border} p-4`}>
               <div className="group block w-full flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-gray-700">
+                    <div className={`text-sm font-medium ${SIDEBAR_COLORS.text}`}>
                       {user?.nama}
                     </div>
-                    <div className="text-xs font-medium text-gray-500 capitalize">
+                    <div className={`text-xs font-medium ${SIDEBAR_COLORS.textMuted} capitalize`}>
                       {user?.role_name}
                     </div>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="text-xs text-red-600 hover:text-red-500"
+                    className="text-xs text-red-300 hover:text-red-100"
                   >
                     Logout
                   </button>

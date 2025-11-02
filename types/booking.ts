@@ -1,7 +1,12 @@
+// types/booking.ts
 export interface Booking {
   booking_id: string;
   pelanggan_id: string;
   nama_lengkap: string;
+  username: string;
+  email: string;
+  telepon: string;
+  alamat: string;
   tanggal_booking: string;
   jam_mulai: string;
   jam_selesai: string;
@@ -10,6 +15,19 @@ export interface Booking {
   metode_pembayaran: string;
   created_at: string;
   updated_at: string;
+}
+
+// Type guard untuk memvalidasi status
+export function isValidBookingStatus(status: string): status is Booking['status'] {
+  return ['pending', 'confirmed', 'cancelled', 'completed'].includes(status);
+}
+
+// Fungsi untuk mentransform data dari API
+export function transformBookingData(data: any): Booking {
+  return {
+    ...data,
+    status: isValidBookingStatus(data.status) ? data.status : 'pending'
+  };
 }
 
 export interface CreateBookingData {
