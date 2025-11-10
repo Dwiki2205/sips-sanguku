@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me', { credentials: 'include' });
+      const response = await fetch('/api/auth/me');
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
@@ -39,20 +39,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (token: string, userData: User) => {
     setUser(userData);
+
     const role = userData.role_name?.toLowerCase();
-    if (!role || !['owner', 'pegawai', 'pelanggan'].includes(role)) {
+
+    if (!role) {
       router.push('/login');
       return;
     }
+
+    const validRoles = ['owner', 'pegawai', 'pelanggan'];
+    if (!validRoles.includes(role)) {
+      router.push('/login');
+      return;
+    }
+
     router.push(`/${role}/dashboard`);
   };
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -70,6 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };

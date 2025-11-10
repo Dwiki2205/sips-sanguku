@@ -1,44 +1,56 @@
-// lib/auth.ts
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
 
-const isProduction = process.env.NODE_ENV === 'production';
+// Development mode - skip hashing for easier testing
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 export async function hashPassword(password: string): Promise<string> {
-  if (!isProduction) {
-    console.warn('DEV MODE: Password tidak di-hash');
+  if (isDevelopment) {
+    // Return plain password for development
     return password;
   }
-  return await bcrypt.hash(password, 10);
+  const saltRounds = 10;
+  return await bcrypt.hash(password, saltRounds);
 }
 
-export async function verifyPassword(plain: string, hashed: string): Promise<boolean> {
-  if (!isProduction) return plain === hashed;
-  return await bcrypt.compare(plain, hashed);
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  if (isDevelopment) {
+    // Simple comparison for development
+    return password === hashedPassword;
+  }
+  return await bcrypt.compare(password, hashedPassword);
 }
 
 export function generateToken(payload: any): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET tidak diset di environment!');
-  return jwt.sign(payload, secret, { expiresIn: '24h' });
+  return jwt.sign(payload, process.env.JWT_SECRET || 'dev-secret-key', { expiresIn: '24h' });
 }
 
 export function verifyToken(token: string): any {
   try {
-    const secret = process.env.JWT_SECRET || 'fallback';
-    return jwt.verify(token, secret);
-  } catch {
+    return jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key');
+  } catch (error) {
     return null;
   }
 }
 
-// Set cookie via header (bukan next/headers)
-export function getAuthCookieHeader(token: string): string {
-  return `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400; ${
-    isProduction ? 'Secure;' : ''
-  }`;
+export async function setAuthCookie(token: string) {
+  const cookieStore = cookies();
+  cookieStore.set('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60, // 24 hours
+    path: '/',
+  });
 }
 
-export function getLogoutCookieHeader(): string {
-  return 'token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0;';
+export async function removeAuthCookie() {
+  const cookieStore = cookies();
+  cookieStore.delete('token');
+}
+
+export function getAuthToken(): string | null {
+  const cookieStore = cookies();
+  return cookieStore.get('token')?.value || null;
 }

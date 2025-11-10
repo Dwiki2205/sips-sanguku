@@ -1,11 +1,22 @@
-// app/api/auth/logout/route.ts
 import { NextResponse } from 'next/server';
-import { getLogoutCookieHeader } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
+import { removeAuthCookie } from '@/lib/auth';
 
 export async function POST() {
-  const response = NextResponse.json({ success: true, message: 'Logged out' });
-  response.headers.set('Set-Cookie', getLogoutCookieHeader());
-  return response;
+  try {
+    await removeAuthCookie();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Logout berhasil'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Terjadi kesalahan server' 
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -1,20 +1,13 @@
 // app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken, getAuthToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-function getCookie(request: NextRequest, name: string): string | null {
-  const cookie = request.headers.get('cookie');
-  if (!cookie) return null;
-  const match = cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 export async function GET(request: NextRequest) {
   try {
-    const token = getCookie(request, 'token');
+    const token = getAuthToken();
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -28,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (decoded.user_type === 'pelanggan') {
       const res = await pool.query(
         `SELECT 
-           pelanggan_id as id,
+           pelanggan_id as pengguna_id,
            nama_lengkap as nama,
            username,
            email,
@@ -45,7 +38,7 @@ export async function GET(request: NextRequest) {
     } else {
       const res = await pool.query(
         `SELECT 
-           p.pengguna_id as id,
+           p.pengguna_id,
            p.nama,
            p.username,
            p.email,
@@ -67,13 +60,13 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: user.id,
+      pengguna_id: user.pengguna_id,
       nama: user.nama,
       username: user.username,
       email: user.email,
       telepon: user.telepon,
       role_id: user.role_id,
-      role_name: user.role_name,
+      role_name: user.role_name,                    // KONSISTEN: role_name
       permissions: typeof user.permissions === 'string'
         ? JSON.parse(user.permissions)
         : user.permissions,
