@@ -1,3 +1,4 @@
+// components/auth/LoginForm.tsx
 'use client';
 
 import { useState } from 'react';
@@ -7,10 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
 export default function LoginForm() {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -25,6 +23,7 @@ export default function LoginForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
+        credentials: 'include', // WAHHHHH
       });
 
       const data = await response.json();
@@ -53,7 +52,6 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* Username */}
       <Input
         label="Username"
         name="username"
@@ -66,13 +64,12 @@ export default function LoginForm() {
         className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 rounded-xl h-12 text-base"
       />
 
-      {/* Password */}
       <Input
         label="Password"
         name="password"
         type="password"
         required
-        placeholder="sangukuidn170945"
+        placeholder="••••••••"
         value={formData.password}
         onChange={handleChange}
         disabled={loading}
@@ -80,24 +77,16 @@ export default function LoginForm() {
         className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 rounded-xl h-12 text-base"
       />
 
-      {/* Remember Me + Forgot */}
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center">
-          <input
-            id="remember"
-            type="checkbox"
-            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <label htmlFor="remember" className="ml-2 text-gray-700">
-            Remember me
-          </label>
+          <input id="remember" type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+          <label htmlFor="remember" className="ml-2 text-gray-700">Remember me</label>
         </div>
         <Link href="/lupa-password" className="text-blue-600 hover:text-blue-500 font-medium">
           Forgot password?
         </Link>
       </div>
 
-      {/* Submit Button */}
       <Button
         type="submit"
         variant="primary"
