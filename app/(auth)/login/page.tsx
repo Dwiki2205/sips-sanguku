@@ -1,54 +1,41 @@
+// (auth)/login/page.tsx
 import LoginForm from '@/components/auth/LoginForm';
-import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-gray-900">SIPS</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Sistem Informasi Pengelolaan Sanguku
-            </p>
-          </Link>
-          <h2 className="mt-6 text-2xl font-extrabold text-gray-900">
-            Login ke Akun Anda
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Masukkan username dan password untuk mengakses sistem
+    <div className="relative min-h-screen flex items-center justify-center md:justify-end p-4 sm:p-6 md:p-8 overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/images/bgsanguku.png"
+          alt="Sanguku Cafe"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+
+      {/* Login Card - DI KANAN, TIDAK TERLALU KIRI */}
+      <div className="w-full max-w-md md:mr-32 lg:mr-36 xl:mr-44">
+        <div className="backdrop-blur-lg bg-blue-600/20 rounded-3xl shadow-2xl p-6 sm:p-8 border border-white/50">
+          
+          {/* Header */}
+          <h1 className="text-center text-3xl sm:text-4xl font-bold text-white mb-8">
+            Welcome back!
+          </h1>
+
+          {/* Form */}
+          <LoginForm />
+
+          {/* Sign Up Link */}
+          <p className="mt-6 text-center text-sm text-white">
+            Don’t have account?{' '}
+            <a href="/registrasi" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign Up!
+            </a>
           </p>
-        </div>
-        
-        <LoginForm />
-
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Fitur Baru</span>
-            </div>
-          </div>
-          <div className="mt-4 text-center text-xs text-gray-500">
-            <p>🔒 Klik icon mata untuk melihat/menyembunyikan password</p>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Akun Demo</span>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-2 text-xs text-center text-gray-600">
-            <div><strong>Owner:</strong> username: <code>owner</code> | password: <code>admin123</code></div>
-            <div><strong>Pegawai:</strong> username: <code>pegawai</code> | password: <code>pegawai123</code></div>
-          </div>
         </div>
       </div>
     </div>

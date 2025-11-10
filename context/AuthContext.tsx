@@ -1,3 +1,4 @@
+// context/AuthContext.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -36,20 +37,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // AuthContext - tambahkan handling untuk pelanggan
   const login = (token: string, userData: User) => {
     setUser(userData);
-    
-    // Redirect berdasarkan role
-    const role = userData.role_name.toLowerCase();
-    if (role === 'owner') {
-      router.push('/owner/dashboard');
-    } else if (role === 'pegawai') {
-      router.push('/pegawai/dashboard');
-    } else if (role === 'pelanggan') {
-      router.push('/pelanggan/dashboard');
+
+    const role = userData.role_name?.toLowerCase();
+
+    if (!role) {
+      router.push('/login');
+      return;
     }
-};
+
+    const validRoles = ['owner', 'pegawai', 'pelanggan'];
+    if (!validRoles.includes(role)) {
+      router.push('/login');
+      return;
+    }
+
+    router.push(`/${role}/dashboard`);
+  };
 
   const logout = async () => {
     try {

@@ -1,8 +1,8 @@
+// app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
-import { generateToken, setAuthCookie } from '@/lib/auth';
+import pool from '@/lib/db';
+import { generateToken, setAuthCookie, verifyPassword } from '@/lib/auth';
 
-// api/login - modifikasi
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
@@ -14,28 +14,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cari di tabel pengguna (owner/pegawai)
-    let result = await db.query(
+    let user: any;
+    let userType = 'pengguna';
+
+    // Cari di pengguna
+    const result = await pool.query(
       `SELECT p.*, r.role_name, r.permissions 
        FROM pengguna p 
        JOIN role r ON p.role_id = r.role_id 
        WHERE p.username = $1`,
       [username]
     );
-    
-    let user = result.rows[0];
-    let userType = 'pengguna';
+    user = result.rows[0];
 
-    // Jika tidak ditemukan di pengguna, cari di pelanggan
+    // Jika tidak ada, cek pelanggan
     if (!user) {
-      result = await db.query(
+      const res = await pool.query(
         `SELECT *, 'pelanggan' as role_name, '["add_booking","view_booking","add_membership","view_membership"]' as permissions
-         FROM pelanggan 
-         WHERE username = $1`,
+         FROM pelanggan WHERE username = $1`,
         [username]
       );
-      
-      user = result.rows[0];
+      user = res.rows[0];
       userType = 'pelanggan';
     }
 
@@ -46,66 +45,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifikasi password
-    if (password !== user.password) {
+    const isValid = await verifyPassword(password, user.password);
+    if (!isValid) {
       return NextResponse.json(
         { success: false, error: 'Username atau password salah' },
         { status: 401 }
       );
     }
 
-    // Generate JWT token dengan data yang sesuai
     const tokenPayload = {
       pengguna_id: user.pengguna_id || user.pelanggan_id,
       username: user.username,
       role: user.role_name,
       permissions: user.permissions,
-      user_type: userType
+      user_type: userType,
     };
-    
-    const token = generateToken(tokenPayload);
 
-    // Response berdasarkan tipe user
-    let userResponse;
-    if (userType === 'pengguna') {
-      userResponse = {
-        pengguna_id: user.pengguna_id,
-        nama: user.nama,
-        username: user.username,
-        email: user.email,
-        telepon: user.telepon,
-        role_id: user.role_id,
-        role_name: user.role_name,
-        permissions: user.permissions,
-        tanggal_bergabung: user.tanggal_bergabung
-      };
-    } else {
-      userResponse = {
-        pelanggan_id: user.pelanggan_id,
-        nama_lengkap: user.nama_lengkap,
-        username: user.username,
-        email: user.email,
-        telepon: user.telepon,
-        alamat: user.alamat,
-        role_name: 'pelanggan',
-        permissions: typeof user.permissions === 'string' 
-          ? JSON.parse(user.permissions) 
-          : user.permissions,
-        tanggal_registrasi: user.tanggal_registrasi
-      };
-    }
+    const token = generateToken(tokenPayload);
 
     const response = NextResponse.json({
       success: true,
       message: 'Login berhasil',
-      user: userResponse,
-      token
+      token,
+      user: {
+        pengguna_id: user.pengguna_id || user.pelanggan_id,
+        nama: user.nama || user.nama_lengkap,
+        username: user.username,
+        email: user.email,
+        telepon: user.telepon,
+        role_id: user.role_id,
+        role_name: user.role_name,  // KONSISTEN
+        permissions: typeof user.permissions === 'string'
+          ? JSON.parse(user.permissions)
+          : user.permissions,
+        tanggal_bergabung: user.tanggal_bergabung || user.tanggal_registrasi,
+      },
     });
 
     await setAuthCookie(token);
     return response;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
       { success: false, error: 'Terjadi kesalahan server' },

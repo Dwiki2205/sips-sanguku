@@ -114,9 +114,14 @@ async function initializeDatabase(database: Database): Promise<void> {
     ('PLG002', 'Jane Smith', 'janesmith', 'pelanggan123', 'jane@email.com', '081234567893', 'Jl. Test No. 456, Yogyakarta');
 
     INSERT OR IGNORE INTO booking (booking_id, pelanggan_id, tanggal_booking, jam_mulai, jam_selesai, status, total_biaya, metode_pembayaran) VALUES
-    ('BKG001', 'PLG001', '2024-01-15', '14:00', '16:00', 'confirmed', 100000, 'QRIS'),
-    ('BKG002', 'PLG002', '2024-01-16', '10:00', '12:00', 'pending', 100000, 'Cash');
-
+    ('BKG001', 'PLG001', '2024-01-15', '14:00:00', '16:00:00', 'confirmed', 100000, 'QRIS'),
+    ('BKG002', 'PLG002', '2025-11-04', '16:00:00', '17:00:00', 'confirmed', 100000, 'Cash'),
+    ('BKG003', 'PLG003', '2024-01-16', '19:00:00', '11:00:00', 'pending', 100000, 'QRIS'),
+    ('BKG004', 'PLG001', '2024-01-17', '13:00:00', '21:00:00', 'confirmed', 100000, 'Cash'),
+    ('BKG005', 'PLG004', '2024-01-18', '18:00:00', '15:00:00', 'confirmed', 100000, 'QRIS'),
+    ('BKG007', 'PLG003', '2024-01-12', '08:00:00', '20:00:00', 'pending', 100000, 'Cash'),
+    ('BKG008', 'PLG005', '2024-01-01', '08:00:00', '10:00:00', 'confirmed', 100000, 'QRIS'),
+    ('BKG009', 'PLG004', '2024-01-05', '14:00:00', '16:00:00', 'cancelled', 100000, 'Cash');
     INSERT OR IGNORE INTO membership (membership_id, pelanggan_id, tanggal_daftar, status_keaktifan, tier_membership, expired_date) VALUES
     ('MEM001', 'PLG001', '2024-01-01', 'active', 'Gold', '2024-12-31'),
     ('MEM002', 'PLG002', '2024-01-01', 'active', 'Silver', '2024-06-30');

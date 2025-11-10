@@ -1,205 +1,235 @@
-// app/owner/booking/page.tsx
+// app/(dashboard)/owner/booking/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui';
-import BookingSearch from '@/components/booking/BookingSearch';
-import BookingCalendar from '@/components/booking/BookingCalender';
 import BookingDetails from '@/components/booking/BookingDetails';
-import { Booking, transformBookingData, isValidBookingStatus } from '@/types/booking';
+import { Booking } from '@/types/booking';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 export default function OwnerBookingPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  useEffect(() => {
-    filterBookings();
-  }, [searchTerm, bookings]);
+  const [filtered, setFiltered] = useState<Booking[]>([]);
+  const [selected, setSelected] = useState<Booking | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const limit = 7;
 
   const fetchBookings = async () => {
     try {
-      const response = await fetch('/api/booking');
-      const result = await response.json();
-      
-      if (result.success) {
-        // Transform data dari API ke tipe Booking yang valid
-        const transformedBookings = result.data.map((item: any) => transformBookingData(item));
-        setBookings(transformedBookings);
-        setFilteredBookings(transformedBookings);
+      setLoading(true);
+      const offset = (page - 1) * limit;
+      const res = await fetch(`/api/booking?limit=${limit}&offset=${offset}`);
+      const data = await res.json();
+
+      if (data.success) {
+        const enriched = data.data.map((b: any) => ({
+          ...b,
+          nama_lengkap: b.nama_pelanggan || 'Unknown',
+        }));
+        setBookings(enriched);
+        setFiltered(enriched);
+        setTotal(data.pagination?.total || 0);
       }
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error('Gagal ambil data');
     } finally {
       setLoading(false);
     }
   };
 
-  const filterBookings = () => {
-    if (!searchTerm.trim()) {
-      setFilteredBookings(bookings);
-      return;
-    }
+  const refetchBookings = async () => {
+    setPage(1);
+    await fetchBookings();
+  };
 
-    const filtered = bookings.filter(booking =>
-      booking.booking_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    fetchBookings();
+  }, [page]);
+
+  useEffect(() => {
+    const lower = search.toLowerCase();
+    const result = bookings.filter(b =>
+      b.booking_id.toLowerCase().includes(lower) ||
+      (b.nama_lengkap || '').toLowerCase().includes(lower)
     );
-    setFilteredBookings(filtered);
+    setFiltered(result);
+  }, [search, bookings]);
+
+  const getInitials = (name: string) => {
+    if (!name || name === 'Unknown') return '??';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-  };
+  const totalPages = Math.ceil(total / limit) || 1;
+  const hasNext = page < totalPages;
+  const hasPrev = page > 1;
 
-  const handleBookingSelect = (booking: Booking) => {
-    setSelectedBooking(booking);
-  };
-
-  const handleStatusUpdate = async (bookingId: string, newStatus: string) => {
-    // Validasi status sebelum mengirim ke API
-    if (!isValidBookingStatus(newStatus)) {
-      alert('Status tidak valid');
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/booking/${bookingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Update local state dengan validasi
-        const updatedBookings = bookings.map(booking =>
-          booking.booking_id === bookingId 
-            ? transformBookingData({ ...booking, status: newStatus })
-            : booking
-        );
-        setBookings(updatedBookings);
+  const handleDelete = async () => {
+    if (!selected) return;
+    
+    if (confirm(`Hapus booking #${selected.booking_id}?`)) {
+      try {
+        const res = await fetch(`/api/booking?id=${selected.booking_id}`, { 
+          method: 'DELETE' 
+        });
         
-        if (selectedBooking?.booking_id === bookingId) {
-          setSelectedBooking(transformBookingData({ ...selectedBooking, status: newStatus }));
+        if (res.ok) {
+          alert('Berhasil dihapus!');
+          setSelected(null);
+          await refetchBookings();
+        } else {
+          alert('Gagal menghapus booking');
         }
-        
-        router.refresh();
-      } else {
-        alert(result.error || 'Gagal mengupdate status');
+      } catch (error) {
+        alert('Gagal menghapus booking');
       }
-    } catch (error) {
-      console.error('Error updating booking status:', error);
-      alert('Terjadi kesalahan saat mengupdate status');
     }
   };
-
-  // ... rest of the component remains the same
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Booking</h1>
-        <Button onClick={() => router.push('/owner/booking/new')}>
-          Buat Booking Baru
-        </Button>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* SEARCH BAR */}
+      <div className="mb-6">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Cari booking..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 outline-none text-gray-700"
+          />
+          <svg className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
       </div>
 
-      {/* Search Section */}
-      <BookingSearch onSearch={handleSearch} />
-
+      {/* UBAH GRID MENJADI 1:2 - DAFTAR KECIL, DETAIL BESAR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Booking List */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Calendar */}
-          <BookingCalendar 
-            onDateSelect={(date) => console.log('Selected date:', date)}
-            unavailableDates={[]}
-          />
+        {/* DAFTAR BOOKING - 1 BAGIAN DARI 3 */}
+        <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
+          <div className="bg-blue-600 text-white p-4">
+            <h2 className="text-lg font-bold">Daftar Booking</h2>
+          </div>
 
-          {/* Booking List */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Daftar Booking</h3>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {filteredBookings.map((booking) => (
+          <div className="flex-1 divide-y divide-gray-100 overflow-y-auto max-h-[600px]">
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-sm">Memuat data...</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <span className="text-lg">?</span>
+                </div>
+                <p className="text-sm">Tidak ada data</p>
+              </div>
+            ) : (
+              filtered.map((b) => (
                 <div
-                  key={booking.booking_id}
-                  className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
-                    selectedBooking?.booking_id === booking.booking_id ? 'bg-blue-50' : ''
+                  key={b.booking_id}
+                  onClick={() => setSelected(b)}
+                  className={`p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-blue-50 ${
+                    selected?.booking_id === b.booking_id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
                   }`}
-                  onClick={() => handleBookingSelect(booking)}
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{booking.booking_id}</h4>
-                      <p className="text-sm text-gray-500">
-                        {new Date(booking.tanggal_booking).toLocaleDateString('id-ID')}
-                      </p>
-                    </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {booking.status === 'confirmed' ? 'Dikonfirmasi' : 
-                       booking.status === 'pending' ? 'Menunggu' : 
-                       booking.status === 'cancelled' ? 'Dibatalkan' : 
-                       booking.status === 'completed' ? 'Selesai' : 'Tidak Dikenal'}
-                    </span>
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    {getInitials(b.nama_lengkap)}
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{booking.nama_lengkap}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-800 truncate text-sm">#{b.booking_id}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ml-1 ${
+                        b.status === 'confirmed' ? 'bg-green-500' :
+                        b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}>
+                        {b.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 truncate">{b.nama_lengkap}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(b.tanggal_booking).toLocaleDateString('id-ID', {
+                        day: 'numeric', month: 'numeric', year: 'numeric'
+                      })}
+                    </p>
+                  </div>
                 </div>
-              ))}
-              
-              {filteredBookings.length === 0 && (
-                <div className="p-4 text-center text-gray-500">
-                  Tidak ada data booking
-                </div>
-              )}
-            </div>
+              ))
+            )}
+          </div>
+
+          {/* PAGINATION */}
+          <div className="p-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={!hasPrev || loading}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                !hasPrev || loading
+                  ? 'bg-gray-100 text-gray-400 border border-gray-300 cursor-not-allowed'
+                  : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Prev
+            </button>
+
+            <span className="text-xs text-gray-600">
+              <strong>{page}</strong>/<strong>{totalPages}</strong>
+            </span>
+
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={!hasNext || loading}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                !hasNext || loading
+                  ? 'bg-gray-100 text-gray-400 border border-gray-300 cursor-not-allowed'
+                  : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'
+              }`}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Right Column - Booking Details */}
-        <div className="lg:col-span-2">
-          {selectedBooking ? (
-            <BookingDetails 
-              booking={selectedBooking}
-              onStatusUpdate={handleStatusUpdate}
-            />
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <div className="text-gray-400 mb-4">
-                <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Pilih Booking</h3>
-              <p className="text-gray-500">Pilih booking dari daftar di sebelah kiri untuk melihat detail</p>
+        {/* DETAIL BOOKING - 2 BAGIAN DARI 3 */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="bg-blue-600 text-white p-5 flex items-center justify-between">
+            <h2 className="text-xl font-bold">Detail Data Booking</h2>
+            <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                variant="success"
+                className="bg-green-600 hover:bg-green-700 text-white" 
+                onClick={() => window.location.href = '/owner/booking/new'}
+              >
+                Tambah
+              </Button>
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                disabled={!selected} 
+                onClick={() => selected && (window.location.href = `/owner/booking/edit/${selected.booking_id}`)}
+              >
+                Ubah
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={!selected}
+                onClick={handleDelete}
+              >
+                Hapus
+              </Button>
             </div>
-          )}
+          </div>
+          <div className="p-6">
+            <BookingDetails booking={selected} />
+          </div>
         </div>
       </div>
     </div>

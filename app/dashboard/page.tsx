@@ -1,5 +1,5 @@
+// app/dashboard/page.tsx
 'use client';
-
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -11,10 +11,13 @@ export default function DashboardRedirectPage() {
 
   useEffect(() => {
     if (user) {
-      const role = user.role_name.toLowerCase();
-      router.push(`/${role}/dashboard`);
+      const role = user.role_name?.toLowerCase(); // KONSISTEN
+      if (role) {
+        router.push(`/${role}/dashboard`);
+      } else {
+        router.push('/login');
+      }
     } else {
-      // Jika tidak ada user, redirect ke login
       router.push('/login');
     }
   }, [user, router]);

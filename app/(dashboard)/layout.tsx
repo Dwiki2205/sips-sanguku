@@ -1,16 +1,39 @@
-import { AuthProvider } from '@/context/AuthContext';
-import DashboardLayout from '@/components/layout/DashboardLayout'; // Sesuaikan nama file
+// app/(dashboard)/layout.tsx
+'use client';
 
-export default function DashboardLayoutWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import { useState } from 'react';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
   return (
-    <AuthProvider>
-      <DashboardLayout>
-        {children}
-      </DashboardLayout>
-    </AuthProvider>
+    <div className="h-screen flex overflow-hidden bg-gray-100">
+      {/* Sidebar */}
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} collapsed={collapsed} />
+
+      {/* Main Content */}
+      <div className={`flex flex-col flex-1 ${collapsed ? 'lg:pl-16' : 'lg:pl-64'} transition-all duration-300`}>
+        <Header setSidebarOpen={setSidebarOpen} collapsed={collapsed} setCollapsed={setCollapsed} />
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 lg:p-6">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }

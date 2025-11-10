@@ -9,29 +9,12 @@ export interface Membership {
   expired_date: string;
   email: string;
   telepon: string;
-  alamat?: string;
 }
 
+// TAMBAHKAN INI!
 export interface CreateMembershipData {
   pelanggan_id: string;
   tanggal_daftar: string;
-  tier_membership: string;
+  tier_membership: 'Silver' | 'Gold' | 'Platinum';
   expired_date: string;
-}
-
-// Type guard untuk validasi
-export function isValidMembershipStatus(status: string): status is Membership['status_keaktifan'] {
-  return ['active', 'inactive', 'expired'].includes(status);
-}
-
-export function isValidMembershipTier(tier: string): tier is Membership['tier_membership'] {
-  return ['Silver', 'Gold', 'Platinum'].includes(tier);
-}
-
-export function transformMembershipData(data: any): Membership {
-  return {
-    ...data,
-    status_keaktifan: isValidMembershipStatus(data.status_keaktifan) ? data.status_keaktifan : 'active',
-    tier_membership: isValidMembershipTier(data.tier_membership) ? data.tier_membership : 'Silver'
-  };
 }

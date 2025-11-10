@@ -1,230 +1,268 @@
-// app/owner/membership/page.tsx
+// app/(dashboard)/owner/membership/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui';
-import MembershipSearch from '@/components/membership/MembershipSearch';
 import MembershipDetails from '@/components/membership/MembershipDetails';
-import { Membership, transformMembershipData, isValidMembershipStatus } from '@/types/membership';
+import Modal from '@/components/ui/Modal';
+import { Membership } from '@/types/membership';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Button from '@/components/ui/Button';
 
 export default function OwnerMembershipPage() {
-  const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [filteredMemberships, setFilteredMemberships] = useState<Membership[]>([]);
-  const [selectedMembership, setSelectedMembership] = useState<Membership | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [filtered, setFiltered] = useState<Membership[]>([]);
+  const [selected, setSelected] = useState<Membership | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const limit = 6;
 
-  useEffect(() => {
-    fetchMemberships();
-  }, []);
-
-  useEffect(() => {
-    filterMemberships();
-  }, [searchTerm, memberships]);
-
+  // === FETCH DATA DENGAN PAGINATION & SEARCH ===
   const fetchMemberships = async () => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/membership');
-      const result = await response.json();
-      
-      if (result.success) {
-        // TRANSFORM DATA dari API ke tipe yang valid
-        const transformedMemberships = result.data.map((item: any) => transformMembershipData(item));
-        setMemberships(transformedMemberships);
-        setFilteredMemberships(transformedMemberships);
-        // Auto-select first membership if available
-        if (transformedMemberships.length > 0) {
-          setSelectedMembership(transformedMemberships[0]);
-        }
+      const offset = (page - 1) * limit;
+      const res = await fetch(
+        `/api/membership?limit=${limit}&offset=${offset}&search=${encodeURIComponent(search)}`
+      );
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const json = await res.json();
+
+      if (json.success && Array.isArray(json.data)) {
+        setMemberships(json.data);
+        setFiltered(json.data);
+        setTotal(json.pagination?.total || 0);
+      } else {
+        console.error('Invalid response:', json);
+        setMemberships([]);
+        setFiltered([]);
+        setTotal(0);
       }
-    } catch (error) {
-      console.error('Error fetching memberships:', error);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      alert('Gagal memuat data membership');
+      setMemberships([]);
+      setFiltered([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
   };
 
-  const filterMemberships = () => {
-    if (!searchTerm.trim()) {
-      setFilteredMemberships(memberships);
-      return;
-    }
+  // === EFFECT: Reload saat page/search berubah ===
+  useEffect(() => {
+    fetchMemberships();
+  }, [page, search]);
 
-    const filtered = memberships.filter(membership =>
-      membership.membership_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      membership.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      membership.tier_membership.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredMemberships(filtered);
+  // === UTILS ===
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-  };
+  const totalPages = Math.ceil(total / limit) || 1;
+  const hasNext = page < totalPages;
+  const hasPrev = page > 1;
 
-  const handleMembershipSelect = (membership: Membership) => {
-    setSelectedMembership(membership);
-  };
-
-  const handleStatusUpdate = async (membershipId: string, newStatus: string) => {
-    // VALIDASI status sebelum mengirim ke API
-    if (!isValidMembershipStatus(newStatus)) {
-      alert('Status tidak valid');
-      return;
-    }
+  // === HAPUS MEMBERSHIP ===
+  const handleDelete = async () => {
+    if (!selected) return;
+    if (!confirm(`Hapus membership #${selected.membership_id}?`)) return;
 
     try {
-      const response = await fetch(`/api/membership/${membershipId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status_keaktifan: newStatus }),
+      const res = await fetch(`/api/membership?id=${selected.membership_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        // Update local state dengan transformasi
-        const updatedMemberships = memberships.map(membership =>
-          membership.membership_id === membershipId 
-            ? transformMembershipData({ ...membership, status_keaktifan: newStatus })
-            : membership
-        );
-        setMemberships(updatedMemberships);
-        
-        if (selectedMembership?.membership_id === membershipId) {
-          setSelectedMembership(transformMembershipData({ ...selectedMembership, status_keaktifan: newStatus }));
-        }
-        
-        router.refresh();
+      if (res.ok) {
+        alert('Membership berhasil dihapus!');
+        setSelected(null);
+        fetchMemberships();
       } else {
-        alert(result.error || 'Gagal mengupdate status');
+        const err = await res.json();
+        alert(err.error || 'Gagal menghapus');
       }
-    } catch (error) {
-      console.error('Error updating membership status:', error);
-      alert('Terjadi kesalahan saat mengupdate status');
+    } catch {
+      alert('Terjadi kesalahan jaringan');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Membership</h1>
-        <div className="flex space-x-3">
-          <Button variant="outline" onClick={() => router.push('/owner/membership/new')}>
-            Buat Membership Baru
-          </Button>
-          <Button onClick={() => router.push('/owner/booking')}>
-            Booking
-          </Button>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* HEADER & SEARCH */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">Manajemen Membership</h1>
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            placeholder="Cari nama, email, ID, atau tier..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
+          />
+          <svg
+            className="absolute left-4 top-3.5 w-5 h-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
         </div>
       </div>
 
-      {/* Search Section */}
-      <MembershipSearch onSearch={handleSearch} />
-
+      {/* GRID: LIST + DETAIL */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Membership List */}
-        <div className="lg:col-span-1">
-          {/* Membership List */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Data Membership</h3>
-            </div>
-            <div className="max-h-[600px] overflow-y-auto">
-              {filteredMemberships.map((membership) => (
+        {/* DAFTAR MEMBERSHIP */}
+        <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border overflow-hidden flex flex-col">
+          <div className="bg-blue-600 text-white p-4">
+            <h2 className="text-lg font-bold">Daftar Membership</h2>
+            <p className="text-xs opacity-90">
+              Total: {total} | Halaman {page} dari {totalPages}
+            </p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto max-h-[600px] divide-y">
+            {loading ? (
+              <div className="p-12 text-center">
+                <div className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-sm text-gray-500 mt-2">Memuat data...</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <p className="font-medium">Tidak ada membership ditemukan</p>
+                <p className="text-sm mt-1">Coba ubah kata kunci pencarian</p>
+              </div>
+            ) : (
+              filtered.map((m) => (
                 <div
-                  key={membership.membership_id}
-                  className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    selectedMembership?.membership_id === membership.membership_id 
-                      ? 'bg-blue-50 border-l-4 border-l-blue-500' 
+                  key={m.membership_id}
+                  onClick={() => setSelected(m)}
+                  className={`p-4 flex gap-3 cursor-pointer transition-all hover:bg-blue-50 ${
+                    selected?.membership_id === m.membership_id
+                      ? 'bg-blue-50 border-l-4 border-blue-600'
                       : ''
                   }`}
-                  onClick={() => handleMembershipSelect(membership)}
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-lg">{membership.membership_id}</h4>
-                      <p className="text-sm text-gray-500">
-                        {new Date(membership.tanggal_daftar).toLocaleDateString('id-ID')}
-                      </p>
+                  {/* AVATAR */}
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow">
+                    {getInitials(m.nama_lengkap)}
+                  </div>
+
+                  {/* INFO */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-2">
+                      <h3 className="font-semibold text-sm text-gray-800 truncate">
+                        #{m.membership_id}
+                      </h3>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-bold text-white shadow-sm ${
+                          m.tier_membership === 'Platinum'
+                            ? 'bg-purple-600'
+                            : m.tier_membership === 'Gold'
+                            ? 'bg-yellow-600'
+                            : 'bg-gray-500'
+                        }`}
+                      >
+                        {m.tier_membership}
+                      </span>
                     </div>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                      membership.tier_membership === 'Gold' 
-                        ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' 
-                        : membership.tier_membership === 'Platinum'
-                        ? 'bg-purple-100 text-purple-800 border border-purple-300'
-                        : 'bg-gray-100 text-gray-800 border border-gray-300'
-                    }`}>
-                      {membership.tier_membership}
-                    </span>
-                  </div>
-                  
-                  {/* Status indicator */}
-                  <div className="flex justify-between items-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      membership.status_keaktifan === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : membership.status_keaktifan === 'expired'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {membership.status_keaktifan === 'active' ? 'Aktif' : 
-                       membership.status_keaktifan === 'expired' ? 'Kadaluarsa' : 
-                       'Tidak Aktif'}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(membership.expired_date).toLocaleDateString('id-ID')}
-                    </span>
+                    <p className="text-sm font-medium text-gray-700 truncate">{m.nama_lengkap}</p>
+                    <p className="text-xs text-gray-500">
+                      Exp:{' '}
+                      {new Date(m.expired_date).toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </p>
                   </div>
                 </div>
-              ))}
-              
-              {filteredMemberships.length === 0 && (
-                <div className="p-8 text-center text-gray-500">
-                  <div className="text-gray-400 mb-2">
-                    <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak Ada Data</h3>
-                  <p className="text-gray-500">Tidak ada data membership yang ditemukan</p>
-                </div>
-              )}
-            </div>
+              ))
+            )}
+          </div>
+
+          {/* PAGINATION */}
+          <div className="p-3 border-t bg-gray-50 flex justify-between items-center">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={!hasPrev || loading}
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </Button>
+            <span className="text-sm text-gray-600 font-medium">
+              {page} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!hasNext || loading}
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
-        {/* Right Column - Membership Details */}
-        <div className="lg:col-span-2">
-          {selectedMembership ? (
-            <MembershipDetails 
-              membership={selectedMembership}
-              onStatusUpdate={handleStatusUpdate}
-            />
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <div className="text-gray-400 mb-4">
-                <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Pilih Membership</h3>
-              <p className="text-gray-500">Pilih membership dari daftar di sebelah kiri untuk melihat detail</p>
+        {/* DETAIL MEMBERSHIP */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl border overflow-hidden">
+          <div className="bg-blue-600 text-white p-5 flex justify-between items-center">
+            <h2 className="text-xl font-bold">Detail Membership</h2>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="success"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => router.push('/owner/membership/new')}
+              >
+                Tambah
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!selected}
+                onClick={() =>
+                  selected && router.push(`/owner/membership/edit/${selected.membership_id}`)
+                }
+              >
+                Ubah
+              </Button>
+              <Button size="sm" variant="danger" disabled={!selected} onClick={handleDelete}>
+                Hapus
+              </Button>
             </div>
-          )}
+          </div>
+
+          <div className="p-6">
+            {selected ? (
+              <MembershipDetails membership={selected} />
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <div className="bg-gray-200 border-2 border-dashed rounded-xl w-24 h-24 mx-auto mb-4" />
+                <p className="font-medium">Pilih membership untuk melihat detail</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
