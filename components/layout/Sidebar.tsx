@@ -1,4 +1,3 @@
-// components/layout/Sidebar.tsx
 'use client';
 
 import { Fragment } from 'react';
@@ -6,17 +5,18 @@ import { Dialog, Transition } from '@headlessui/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { 
-  CalendarIcon, 
-  UserGroupIcon, 
+import {
+  CalendarIcon,
+  UserGroupIcon,
   XMarkIcon,
-  HomeIcon
+  HomeIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;   // ← tambahkan
 }
 
 const SIDEBAR_COLORS = {
@@ -31,7 +31,12 @@ const SIDEBAR_COLORS = {
   iconActive: 'text-white',
 };
 
-export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
+export default function Sidebar({
+  open,
+  setOpen,
+  collapsed,
+  setCollapsed,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -54,7 +59,7 @@ export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Sidebar */}
+      {/* ---------- MOBILE ---------- */}
       <Transition.Root show={open} as={Fragment}>
         <Dialog as="div" className="relative z-50 lg:hidden" onClose={setOpen}>
           <Transition.Child
@@ -79,7 +84,10 @@ export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <Dialog.Panel className={`relative flex w-full max-w-xs flex-1 flex-col ${SIDEBAR_COLORS.background} pt-5 pb-4`}>
+              <Dialog.Panel
+                className={`relative flex w-full max-w-xs flex-1 flex-col ${SIDEBAR_COLORS.background} pt-5 pb-4`}
+              >
+                {/* close button */}
                 <div className="absolute top-0 right-0 -mr-12 pt-2">
                   <button
                     type="button"
@@ -90,10 +98,12 @@ export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
                   </button>
                 </div>
 
+                {/* logo */}
                 <div className="flex flex-shrink-0 items-center px-4">
                   <h1 className={`text-xl font-bold ${SIDEBAR_COLORS.logo}`}>SIPS</h1>
                 </div>
 
+                {/* nav */}
                 <nav className="mt-5 flex-1 space-y-1 px-2">
                   {navigation.map((item) => {
                     const isActive = pathname === item.href;
@@ -108,20 +118,32 @@ export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
                             : `${SIDEBAR_COLORS.textMuted} hover:${SIDEBAR_COLORS.hover} hover:${SIDEBAR_COLORS.text}`
                         }`}
                       >
-                        <item.icon className={`mr-4 h-6 w-6 flex-shrink-0 ${isActive ? SIDEBAR_COLORS.iconActive : SIDEBAR_COLORS.icon}`} />
+                        <item.icon
+                          className={`mr-4 h-6 w-6 flex-shrink-0 ${
+                            isActive ? SIDEBAR_COLORS.iconActive : SIDEBAR_COLORS.icon
+                          }`}
+                        />
                         {item.name}
                       </Link>
                     );
                   })}
                 </nav>
 
+                {/* logout */}
                 <div className={`flex-shrink-0 border-t ${SIDEBAR_COLORS.border} p-4`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className={`text-base font-medium ${SIDEBAR_COLORS.text}`}>{user?.nama}</div>
-                      <div className={`text-sm ${SIDEBAR_COLORS.textMuted} capitalize`}>{user?.role_name}</div>
+                      <div className={`text-base font-medium ${SIDEBAR_COLORS.text}`}>
+                        {user?.nama}
+                      </div>
+                      <div className={`text-sm ${SIDEBAR_COLORS.textMuted} capitalize`}>
+                        {user?.role_name}
+                      </div>
                     </div>
-                    <button onClick={handleLogout} className="text-sm text-red-300 hover:text-red-100">
+                    <button
+                      onClick={handleLogout}
+                      className="text-sm text-red-300 hover:text-red-100"
+                    >
                       Logout
                     </button>
                   </div>
@@ -132,14 +154,30 @@ export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
         </Dialog>
       </Transition.Root>
 
-      {/* Desktop Sidebar - Collapsible */}
-      <div className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:transition-all lg:duration-300 ${collapsed ? 'lg:w-16' : 'lg:w-64'}`}>
-        <div className={`flex flex-col flex-grow ${SIDEBAR_COLORS.background} border-r ${SIDEBAR_COLORS.border} overflow-y-auto`}>
+      {/* ---------- DESKTOP (Collapsible) ---------- */}
+      <div
+        className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:transition-all lg:duration-300 ${
+          collapsed ? 'lg:w-16' : 'lg:w-64'
+        }`}
+      >
+        <div
+          className={`flex flex-col flex-grow ${SIDEBAR_COLORS.background} border-r ${SIDEBAR_COLORS.border} overflow-y-auto`}
+        >
+          {/* logo */}
           <div className="flex items-center justify-between px-4 pt-5">
-            <h1 className={`font-bold text-white transition-all ${collapsed ? 'w-0 opacity-0' : 'text-xl'}`}>SIPS</h1>
+            <h1
+              className={`font-bold text-white transition-all ${
+                collapsed ? 'w-0 opacity-0' : 'text-xl'
+              }`}
+            >
+              SIPS
+            </h1>
           </div>
 
-          <nav className={`flex-1 px-2 pb-4 mt-5 space-y-1 ${collapsed ? 'px-3' : ''}`}>
+          {/* nav */}
+          <nav
+            className={`flex-1 px-2 pb-4 mt-5 space-y-1 ${collapsed ? 'px-3' : ''}`}
+          >
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -166,12 +204,19 @@ export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
             })}
           </nav>
 
-          <div className={`flex-shrink-0 border-t ${SIDEBAR_COLORS.border} p-4 ${collapsed ? 'px-2' : ''}`}>
+          {/* logout (desktop) */}
+          <div
+            className={`flex-shrink-0 border-t ${SIDEBAR_COLORS.border} p-4 ${collapsed ? 'px-2' : ''}`}
+          >
             <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
               {!collapsed && (
                 <div>
-                  <div className={`text-sm font-medium ${SIDEBAR_COLORS.text}`}>{user?.nama}</div>
-                  <div className={`text-xs ${SIDEBAR_COLORS.textMuted} capitalize`}>{user?.role_name}</div>
+                  <div className={`text-sm font-medium ${SIDEBAR_COLORS.text}`}>
+                    {user?.nama}
+                  </div>
+                  <div className={`text-xs ${SIDEBAR_COLORS.textMuted} capitalize`}>
+                    {user?.role_name}
+                  </div>
                 </div>
               )}
               <button
@@ -179,8 +224,18 @@ export default function Sidebar({ open, setOpen, collapsed }: SidebarProps) {
                 className="text-red-300 hover:text-red-100"
                 title={collapsed ? 'Logout' : undefined}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
                 </svg>
               </button>
             </div>

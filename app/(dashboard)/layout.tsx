@@ -24,12 +24,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="h-screen flex overflow-hidden bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} collapsed={collapsed} />
+      {/* Sidebar – KIRIM setCollapsed */}
+      <Sidebar
+        open={sidebarOpen}
+        setOpen={setSidebarOpen}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}   
+      />
 
       {/* Main Content */}
-      <div className={`flex flex-col flex-1 ${collapsed ? 'lg:pl-16' : 'lg:pl-64'} transition-all duration-300`}>
-        <Header setSidebarOpen={setSidebarOpen} collapsed={collapsed} setCollapsed={setCollapsed} />
+      <div
+        className={`flex flex-col flex-1 ${
+          collapsed ? 'lg:pl-16' : 'lg:pl-64'
+        } transition-all duration-300`}
+      >
+        <Header
+          setSidebarOpen={setSidebarOpen}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
         <main className="flex-1 overflow-y-auto bg-gray-50 p-4 lg:p-6">
           {children}
         </main>
