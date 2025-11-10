@@ -9,14 +9,13 @@ import {
   CalendarIcon,
   UserGroupIcon,
   XMarkIcon,
-  HomeIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;   // ← tambahkan
+  setCollapsed: (collapsed: boolean) => void;
 }
 
 const SIDEBAR_COLORS = {
@@ -41,16 +40,15 @@ export default function Sidebar({
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  const getNavigation = () => {
-    const basePath = `/${user?.role_name.toLowerCase()}`;
-    return [
-      { name: 'Dashboard', href: `${basePath}/dashboard`, icon: HomeIcon },
-      { name: 'Membership', href: `${basePath}/membership`, icon: UserGroupIcon },
-      { name: 'Booking', href: `${basePath}/booking`, icon: CalendarIcon },
-    ];
-  };
+  // Base path berdasarkan role (owner, admin, dll)
+  const basePath = user?.role_name ? `/${user.role_name.toLowerCase()}` : '/';
+  const dashboardPath = `${basePath}/dashboard`;
 
-  const navigation = getNavigation();
+  // Navigasi tanpa "Dashboard"
+  const navigation = [
+    { name: 'Membership', href: `${basePath}/membership`, icon: UserGroupIcon },
+    { name: 'Booking', href: `${basePath}/booking`, icon: CalendarIcon },
+  ];
 
   const handleLogout = async () => {
     await logout();
@@ -59,7 +57,7 @@ export default function Sidebar({
 
   return (
     <>
-      {/* ---------- MOBILE ---------- */}
+      {/* ========== MOBILE SIDEBAR ========== */}
       <Transition.Root show={open} as={Fragment}>
         <Dialog as="div" className="relative z-50 lg:hidden" onClose={setOpen}>
           <Transition.Child
@@ -87,7 +85,7 @@ export default function Sidebar({
               <Dialog.Panel
                 className={`relative flex w-full max-w-xs flex-1 flex-col ${SIDEBAR_COLORS.background} pt-5 pb-4`}
               >
-                {/* close button */}
+                {/* Close Button */}
                 <div className="absolute top-0 right-0 -mr-12 pt-2">
                   <button
                     type="button"
@@ -98,12 +96,16 @@ export default function Sidebar({
                   </button>
                 </div>
 
-                {/* logo */}
-                <div className="flex flex-shrink-0 items-center px-4">
+                {/* Logo SIPS → ke Dashboard */}
+                <Link
+                  href={dashboardPath}
+                  onClick={() => setOpen(false)}
+                  className="flex flex-shrink-0 items-center px-4"
+                >
                   <h1 className={`text-xl font-bold ${SIDEBAR_COLORS.logo}`}>SIPS</h1>
-                </div>
+                </Link>
 
-                {/* nav */}
+                {/* Navigation */}
                 <nav className="mt-5 flex-1 space-y-1 px-2">
                   {navigation.map((item) => {
                     const isActive = pathname === item.href;
@@ -129,15 +131,15 @@ export default function Sidebar({
                   })}
                 </nav>
 
-                {/* logout */}
+                {/* Logout & User Info */}
                 <div className={`flex-shrink-0 border-t ${SIDEBAR_COLORS.border} p-4`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <div className={`text-base font-medium ${SIDEBAR_COLORS.text}`}>
-                        {user?.nama}
+                        {user?.nama || 'User'}
                       </div>
                       <div className={`text-sm ${SIDEBAR_COLORS.textMuted} capitalize`}>
-                        {user?.role_name}
+                        {user?.role_name || 'Role'}
                       </div>
                     </div>
                     <button
@@ -154,7 +156,7 @@ export default function Sidebar({
         </Dialog>
       </Transition.Root>
 
-      {/* ---------- DESKTOP (Collapsible) ---------- */}
+      {/* ========== DESKTOP SIDEBAR (Collapsible) ========== */}
       <div
         className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:transition-all lg:duration-300 ${
           collapsed ? 'lg:w-16' : 'lg:w-64'
@@ -163,18 +165,28 @@ export default function Sidebar({
         <div
           className={`flex flex-col flex-grow ${SIDEBAR_COLORS.background} border-r ${SIDEBAR_COLORS.border} overflow-y-auto`}
         >
-          {/* logo */}
+          {/* Logo SIPS → ke Dashboard */}
           <div className="flex items-center justify-between px-4 pt-5">
-            <h1
+            <Link
+              href={dashboardPath}
               className={`font-bold text-white transition-all ${
                 collapsed ? 'w-0 opacity-0' : 'text-xl'
               }`}
+              title={collapsed ? 'SIPS - Dashboard' : undefined}
             >
               SIPS
-            </h1>
+            </Link>
+
+            {/* Collapse Toggle (Optional - tambahkan jika perlu) */}
+            {/* <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="text-blue-300 hover:text-white"
+            >
+              {collapsed ? <Bars3Icon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
+            </button> */}
           </div>
 
-          {/* nav */}
+          {/* Navigation */}
           <nav
             className={`flex-1 px-2 pb-4 mt-5 space-y-1 ${collapsed ? 'px-3' : ''}`}
           >
@@ -204,7 +216,7 @@ export default function Sidebar({
             })}
           </nav>
 
-          {/* logout (desktop) */}
+          {/* Logout & User Info (Desktop) */}
           <div
             className={`flex-shrink-0 border-t ${SIDEBAR_COLORS.border} p-4 ${collapsed ? 'px-2' : ''}`}
           >
@@ -212,10 +224,10 @@ export default function Sidebar({
               {!collapsed && (
                 <div>
                   <div className={`text-sm font-medium ${SIDEBAR_COLORS.text}`}>
-                    {user?.nama}
+                    {user?.nama || 'User'}
                   </div>
                   <div className={`text-xs ${SIDEBAR_COLORS.textMuted} capitalize`}>
-                    {user?.role_name}
+                    {user?.role_name || 'Role'}
                   </div>
                 </div>
               )}
