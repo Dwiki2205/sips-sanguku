@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
+// Tambahkan ini: Wajib agar route ini TIDAK diprerender secara statis
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,6 +14,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Date required' }, { status: 400 });
     }
 
+    // Validasi format tanggal sederhana (opsional, tapi direkomendasikan)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json({ error: 'Invalid date format. Use YYYY-MM-DD' }, { status: 400 });
+    }
+
     // Query bookings yang active untuk tanggal tersebut
     const result = await query(
       `
@@ -18,6 +26,7 @@ export async function GET(request: NextRequest) {
       FROM booking 
       WHERE tanggal_booking = $1 
       AND status IN ('pending', 'confirmed')
+      ORDER BY jam_mulai
       `,
       [date]
     );
