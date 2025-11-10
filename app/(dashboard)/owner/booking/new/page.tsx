@@ -1,10 +1,10 @@
-// app/owner/booking/[action]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { ArrowLeft } from 'lucide-react';
+import ModalPopup from '@/components/ui/ModalPopup';
 
 type FormData = {
   booking_id?: string;
@@ -21,6 +21,12 @@ export default function BookingFormPage() {
   const router = useRouter();
   const { action } = useParams();
   const isEdit = action === 'edit';
+
+  // State untuk modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'warning' | 'error'>('success');
+  const [modalTitle, setModalTitle] = useState('');
+
   const [loading, setLoading] = useState(isEdit);
   const [form, setForm] = useState<FormData>({
     pelanggan_id: '',
@@ -32,7 +38,6 @@ export default function BookingFormPage() {
     metode_pembayaran: 'Cash',
   });
 
-  // Generate ID Booking otomatis
   const generatedId = `BKG${String(Date.now()).slice(-4)}`;
 
   useEffect(() => {
@@ -68,6 +73,14 @@ export default function BookingFormPage() {
     e.preventDefault();
     if (loading) return;
 
+    // Validasi wajib isi
+    if (!form.pelanggan_id || !form.tanggal_booking || !form.jam_mulai || !form.jam_selesai || !form.total_biaya) {
+      setModalType('warning');
+      setModalTitle('Data Belum Diisi Lengkap');
+      setModalOpen(true);
+      return;
+    }
+
     const url = isEdit ? `/api/booking/${form.booking_id}` : '/api/booking';
     const method = isEdit ? 'PUT' : 'POST';
 
@@ -88,17 +101,37 @@ export default function BookingFormPage() {
         }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        alert(isEdit ? 'Booking diperbarui!' : 'Booking ditambahkan!');
-        router.push('/owner/booking');
+        setModalType('success');
+        setModalTitle(isEdit ? 'Booking berhasil diperbarui!' : 'Booking berhasil ditambahkan!');
+        setModalOpen(true);
       } else {
-        const err = await res.json();
-        alert(err.error || 'Gagal menyimpan');
+        // Cek jenis error dari backend
+        if (data.error?.includes('duplicate') || data.error?.includes('sudah ada')) {
+          setModalType('warning');
+          setModalTitle('ID Booking sudah terdaftar');
+        } else {
+          setModalType('warning');
+          setModalTitle(data.error || 'Gagal menyimpan booking');
+        }
+        setModalOpen(true);
       }
-    } catch (error) {
-      alert('Error: ' + error);
+    } catch (error: any) {
+      setModalType('error');
+      setModalTitle('Terjadi kesalahan: ' + error.message);
+      setModalOpen(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    // Jika sukses, langsung kembali ke list
+    if (modalType === 'success') {
+      router.push('/owner/booking');
     }
   };
 
@@ -112,8 +145,8 @@ export default function BookingFormPage() {
 
   return (
     <>
-      {/* HEADER BIRU FULL */}
-      <div className="bg-blue-600 text-white rounded-2xl">
+      {/* HEADER BIRU */}
+      <div className="bg-blue-600 text-white rounded-2xl mx-6 mt-6">
         <div className="px-6 py-5 flex items-center gap-4">
           <button
             onClick={() => router.push('/owner/booking')}
@@ -127,29 +160,23 @@ export default function BookingFormPage() {
         </div>
       </div>
 
-      {/* FORM FULL WIDTH */}
+      {/* FORM */}
       <div className="p-6">
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* KIRI */}
             <div className="space-y-6">
-              {/* ID BOOKING — MUNCUL! */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ID Booking
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ID Booking</label>
                 <input
                   readOnly
                   value={form.booking_id || generatedId}
                   className="w-full px-4 py-3 rounded-lg bg-gray-100 text-gray-700 font-medium"
-                  placeholder="BKG1234"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ID Pelanggan
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ID Pelanggan *</label>
                 <input
                   required
                   name="pelanggan_id"
@@ -161,9 +188,7 @@ export default function BookingFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tanggal Booking
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Booking *</label>
                 <input
                   required
                   type="date"
@@ -175,9 +200,7 @@ export default function BookingFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jam Mulai
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Jam Mulai *</label>
                 <input
                   required
                   type="time"
@@ -189,9 +212,7 @@ export default function BookingFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Biaya
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Total Biaya *</label>
                 <input
                   required
                   type="number"
@@ -207,9 +228,7 @@ export default function BookingFormPage() {
             {/* KANAN */}
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select
                   name="status"
                   value={form.status}
@@ -223,9 +242,7 @@ export default function BookingFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jam Selesai
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Jam Selesai *</label>
                 <input
                   required
                   type="time"
@@ -237,9 +254,7 @@ export default function BookingFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Metode Pembayaran
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
                 <select
                   name="metode_pembayaran"
                   value={form.metode_pembayaran}
@@ -253,9 +268,7 @@ export default function BookingFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Created At
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Created At</label>
                 <input
                   readOnly
                   value={new Date().toLocaleString('id-ID')}
@@ -264,9 +277,7 @@ export default function BookingFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Updated At
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Updated At</label>
                 <input
                   readOnly
                   value={new Date().toLocaleString('id-ID')}
@@ -277,12 +288,13 @@ export default function BookingFormPage() {
           </div>
 
           {/* TOMBOL */}
-          <div className="flex justify-end gap-4 mt-10">
+          <div className="flex justify-end gap-4 mt-10 pt-6 border-t border-gray-200">
             <Button
               type="button"
               variant="danger"
               size="lg"
               onClick={() => router.push('/owner/booking')}
+              disabled={loading}
               className="px-8"
             >
               Batal
@@ -292,13 +304,28 @@ export default function BookingFormPage() {
               variant="primary"
               size="lg"
               disabled={loading}
-              className="px-8 bg-green-500 hover:bg-green-600"
+              className="px-8 bg-green-500 hover:bg-green-600 text-white"
             >
-              {loading ? 'Menyimpan...' : 'Simpan'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Booking'
+              )}
             </Button>
           </div>
         </form>
       </div>
+
+      {/* MODAL POPUP */}
+      <ModalPopup
+        isOpen={modalOpen}
+        type={modalType}
+        title={modalTitle}
+        onClose={handleModalClose}
+      />
     </>
   );
 }

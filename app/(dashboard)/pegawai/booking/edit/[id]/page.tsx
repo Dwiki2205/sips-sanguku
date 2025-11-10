@@ -1,10 +1,10 @@
-// app/owner/booking/edit/[id]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { ArrowLeft } from 'lucide-react';
+import ModalPopup from '@/components/ui/ModalPopup';
 
 type FormData = {
   booking_id?: string;
@@ -17,33 +17,28 @@ type FormData = {
   metode_pembayaran: string;
 };
 
-// Fungsi untuk format tanggal ke YYYY-MM-DD (format input date)
 const formatDateForInput = (dateString: string) => {
   if (!dateString) return '';
-  
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-  
-  return date.toISOString().split('T')[0];
+  return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
 };
 
-// Fungsi untuk format waktu ke HH:MM (format input time)
 const formatTimeForInput = (timeString: string) => {
   if (!timeString) return '';
-  
-  // Jika waktu sudah dalam format HH:MM, return langsung
   if (timeString.match(/^\d{2}:\d{2}$/)) return timeString;
-  
-  // Jika waktu dalam format lengkap, ambil bagian jam dan menit
   const date = new Date(`1970-01-01T${timeString}`);
-  if (isNaN(date.getTime())) return '';
-  
-  return date.toTimeString().slice(0, 5);
+  return isNaN(date.getTime()) ? '' : date.toTimeString().slice(0, 5);
 };
 
 export default function EditBookingPage() {
   const router = useRouter();
   const { id } = useParams();
+
+  // State untuk modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'warning' | 'error'>('success');
+  const [modalTitle, setModalTitle] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormData>({
     pelanggan_id: '',
@@ -68,32 +63,31 @@ export default function EditBookingPage() {
       setLoading(true);
       const response = await fetch(`/api/booking/${id}`);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch booking data');
-      }
+      if (!response.ok) throw new Error('Failed to fetch');
       
       const data = await response.json();
       
       if (data.success && data.data) {
-        const booking = data.data;
-        
+        const b = data.data;
         setForm({
-          booking_id: booking.booking_id,
-          pelanggan_id: booking.pelanggan_id || '',
-          tanggal_booking: formatDateForInput(booking.tanggal_booking),
-          jam_mulai: formatTimeForInput(booking.jam_mulai),
-          jam_selesai: formatTimeForInput(booking.jam_selesai),
-          status: booking.status || 'pending',
-          total_biaya: booking.total_biaya?.toString() || '',
-          metode_pembayaran: booking.metode_pembayaran || 'Cash',
+          booking_id: b.booking_id,
+          pelanggan_id: b.pelanggan_id || '',
+          tanggal_booking: formatDateForInput(b.tanggal_booking),
+          jam_mulai: formatTimeForInput(b.jam_mulai),
+          jam_selesai: formatTimeForInput(b.jam_selesai),
+          status: b.status || 'pending',
+          total_biaya: b.total_biaya?.toString() || '',
+          metode_pembayaran: b.metode_pembayaran || 'Cash',
         });
       } else {
-        console.error('Data booking tidak ditemukan');
-        alert('Data booking tidak ditemukan');
+        setModalType('warning');
+        setModalTitle('Data booking tidak ditemukan');
+        setModalOpen(true);
       }
     } catch (error) {
-      console.error('Error fetching booking:', error);
-      alert('Gagal memuat data booking');
+      setModalType('error');
+      setModalTitle('Gagal memuat data booking');
+      setModalOpen(true);
     } finally {
       setLoading(false);
     }
@@ -101,20 +95,24 @@ export default function EditBookingPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading || !form.booking_id) return;
 
+    // Validasi wajib isi
+    if (!form.pelanggan_id || !form.tanggal_booking || !form.jam_mulai || !form.jam_selesai || !form.total_biaya) {
+      setModalType('warning');
+      setModalTitle('Data Belum Diisi Lengkap');
+      setModalOpen(true);
+      return;
+    }
+
     try {
       setLoading(true);
       
-      // Format data sebelum dikirim
       const submitData = {
         booking_id: form.booking_id,
         pelanggan_id: form.pelanggan_id,
@@ -128,25 +126,34 @@ export default function EditBookingPage() {
 
       const res = await fetch(`/api/booking/${form.booking_id}`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
       });
 
       const result = await res.json();
 
       if (res.ok && result.success) {
-        alert('Booking berhasil diperbarui!');
-        router.push('/owner/booking');
+        setModalType('success');
+        setModalTitle('Booking berhasil diperbarui!');
+        setModalOpen(true);
       } else {
-        alert(result.error || 'Gagal memperbarui booking');
+        setModalType('warning');
+        setModalTitle(result.error || 'Gagal memperbarui booking');
+        setModalOpen(true);
       }
-    } catch (error) {
-      console.error('Update error:', error);
-      alert('Terjadi kesalahan saat memperbarui booking');
+    } catch (error: any) {
+      setModalType('error');
+      setModalTitle('Terjadi kesalahan: ' + error.message);
+      setModalOpen(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    if (modalType === 'success') {
+      router.push('/owner/booking');
     }
   };
 
@@ -163,7 +170,7 @@ export default function EditBookingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HEADER BIRU FULL */}
+      {/* HEADER */}
       <div className="bg-blue-600 text-white rounded-2xl mx-6 mt-6">
         <div className="px-6 py-5 flex items-center gap-4">
           <button
@@ -180,12 +187,10 @@ export default function EditBookingPage() {
       <div className="p-6">
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* KOLOM KIRI */}
+            {/* KIRI */}
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ID Booking
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ID Booking</label>
                 <input
                   readOnly
                   value={form.booking_id || ''}
@@ -194,9 +199,7 @@ export default function EditBookingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ID Pelanggan *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ID Pelanggan *</label>
                 <input
                   required
                   name="pelanggan_id"
@@ -208,9 +211,7 @@ export default function EditBookingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tanggal Booking *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Booking *</label>
                 <input
                   required
                   type="date"
@@ -219,15 +220,10 @@ export default function EditBookingPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Tanggal yang dipilih: {form.tanggal_booking || '-'}
-                </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jam Mulai *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Jam Mulai *</label>
                 <input
                   required
                   type="time"
@@ -239,12 +235,10 @@ export default function EditBookingPage() {
               </div>
             </div>
 
-            {/* KOLOM KANAN */}
+            {/* KANAN */}
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select
                   name="status"
                   value={form.status}
@@ -259,9 +253,7 @@ export default function EditBookingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jam Selesai *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Jam Selesai *</label>
                 <input
                   required
                   type="time"
@@ -273,9 +265,7 @@ export default function EditBookingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Biaya *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Total Biaya *</label>
                 <input
                   required
                   type="number"
@@ -289,9 +279,7 @@ export default function EditBookingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Metode Pembayaran
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
                 <select
                   name="metode_pembayaran"
                   value={form.metode_pembayaran}
@@ -307,15 +295,15 @@ export default function EditBookingPage() {
             </div>
           </div>
 
-          {/* TOMBOL ACTION */}
+          {/* TOMBOL */}
           <div className="flex justify-end gap-4 mt-10 pt-6 border-t border-gray-200">
             <Button
               type="button"
               variant="danger"
               size="lg"
               onClick={() => router.push('/owner/booking')}
-              className="px-8"
               disabled={loading}
+              className="px-8"
             >
               Batal
             </Button>
@@ -338,6 +326,14 @@ export default function EditBookingPage() {
           </div>
         </form>
       </div>
+
+      {/* POPUP MODAL */}
+      <ModalPopup
+        isOpen={modalOpen}
+        type={modalType}
+        title={modalTitle}
+        onClose={handleModalClose}
+      />
     </div>
   );
 }

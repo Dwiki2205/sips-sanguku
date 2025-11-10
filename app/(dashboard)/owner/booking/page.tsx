@@ -6,10 +6,17 @@ import BookingDetails from '@/components/booking/BookingDetails';
 import { Booking } from '@/types/booking';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { useRouter } from 'next/navigation'; // Tambahkan ini
+import { useRouter } from 'next/navigation';
+import ModalPopup from '@/components/ui/ModalPopup'; // ← Tambahkan ini
 
 export default function OwnerBookingPage() {
-  const router = useRouter(); // Tambahkan router
+  const router = useRouter();
+
+  // State untuk modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'warning' | 'error'>('success');
+  const [modalTitle, setModalTitle] = useState('');
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filtered, setFiltered] = useState<Booking[]>([]);
   const [selected, setSelected] = useState<Booking | null>(null);
@@ -34,8 +41,6 @@ export default function OwnerBookingPage() {
         setBookings(enriched);
         setFiltered(enriched);
         setTotal(data.pagination?.total || 0);
-        
-        // Reset selected ketika data berubah
         setSelected(null);
       }
     } catch (error) {
@@ -61,25 +66,20 @@ export default function OwnerBookingPage() {
       (b.nama_lengkap || '').toLowerCase().includes(lower)
     );
     setFiltered(result);
-    
-    // Jika selected tidak ada di filtered results, unselect
+
     if (selected && !result.find(b => b.booking_id === selected.booking_id)) {
       setSelected(null);
     }
   }, [search, bookings]);
 
-  // Fungsi untuk handle select/unselect
   const handleSelectBooking = (booking: Booking) => {
     if (selected?.booking_id === booking.booking_id) {
-      // Unselect jika booking yang sama diklik
       setSelected(null);
     } else {
-      // Select booking baru
       setSelected(booking);
     }
   };
 
-  // Fungsi untuk unselect secara eksplisit
   const handleUnselect = () => {
     setSelected(null);
   };
@@ -93,36 +93,57 @@ export default function OwnerBookingPage() {
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
 
+  // === HAPUS DENGAN POPUP ===
   const handleDelete = async () => {
-    if (!selected) return;
-    
-    if (confirm(`Hapus booking #${selected.booking_id}?`)) {
-      try {
-        const res = await fetch(`/api/booking?id=${selected.booking_id}`, { 
-          method: 'DELETE' 
-        });
-        
-        if (res.ok) {
-          alert('Berhasil dihapus!');
-          setSelected(null);
-          await refetchBookings();
-        } else {
-          alert('Gagal menghapus booking');
-        }
-      } catch (error) {
-        alert('Gagal menghapus booking');
+    if (!selected) {
+      setModalType('warning');
+      setModalTitle('Tidak ada booking yang dipilih');
+      setModalOpen(true);
+      return;
+    }
+
+    // Konfirmasi dulu (opsional, bisa langsung popup)
+    if (!confirm(`Hapus booking #${selected.booking_id}?`)) return;
+
+    try {
+      const res = await fetch(`/api/booking?id=${selected.booking_id}`, { 
+        method: 'DELETE' 
+      });
+      
+      if (res.ok) {
+        setModalType('success');
+        setModalTitle('Booking berhasil dihapus!');
+        setModalOpen(true);
+        setSelected(null);
+        await refetchBookings();
+      } else {
+        setModalType('warning');
+        setModalTitle('Gagal menghapus booking');
+        setModalOpen(true);
       }
+    } catch (error) {
+      setModalType('warning');
+      setModalTitle('Gagal menghapus booking');
+      setModalOpen(true);
     }
   };
 
   const handleEdit = () => {
-    if (selected) {
-      router.push(`/owner/booking/edit/${selected.booking_id}`);
+    if (!selected) {
+      setModalType('warning');
+      setModalTitle('Tidak ada booking yang dipilih');
+      setModalOpen(true);
+      return;
     }
+    router.push(`/owner/booking/edit/${selected.booking_id}`);
   };
 
   const handleAdd = () => {
     router.push('/owner/booking/new');
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
   };
 
   return (
@@ -143,9 +164,9 @@ export default function OwnerBookingPage() {
         </div>
       </div>
 
-      {/* UBAH GRID MENJADI 1:2 - DAFTAR KECIL, DETAIL BESAR */}
+      {/* GRID 1:2 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* DAFTAR BOOKING - 1 BAGIAN DARI 3 */}
+        {/* DAFTAR BOOKING */}
         <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
           <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
             <h2 className="text-lg font-bold">Daftar Booking</h2>
@@ -153,7 +174,6 @@ export default function OwnerBookingPage() {
               <button
                 onClick={handleUnselect}
                 className="text-xs bg-blue-500 hover:bg-blue-400 px-2 py-1 rounded transition-colors"
-                title="Unselect booking"
               >
                 Unselect
               </button>
@@ -204,9 +224,6 @@ export default function OwnerBookingPage() {
                       })}
                     </p>
                   </div>
-                  {selected?.booking_id === b.booking_id && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  )}
                 </div>
               ))
             )}
@@ -246,7 +263,7 @@ export default function OwnerBookingPage() {
           </div>
         </div>
 
-        {/* DETAIL BOOKING - 2 BAGIAN DARI 3 */}
+        {/* DETAIL BOOKING */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           <div className="bg-blue-600 text-white p-5 flex items-center justify-between">
             <h2 className="text-xl font-bold">
@@ -258,14 +275,13 @@ export default function OwnerBookingPage() {
                 variant="success"
                 className="bg-green-600 hover:bg-green-700 text-white" 
                 onClick={handleAdd}
-                disabled={!!selected} // Disable ketika ada yang selected
               >
                 Tambah
               </Button>
               <Button 
                 size="sm" 
                 variant="secondary" 
-                disabled={!selected} // Enable hanya ketika ada yang selected
+                disabled={!selected}
                 onClick={handleEdit}
               >
                 Ubah
@@ -273,7 +289,7 @@ export default function OwnerBookingPage() {
               <Button
                 size="sm"
                 variant="danger"
-                disabled={!selected} // Enable hanya ketika ada yang selected
+                disabled={!selected}
                 onClick={handleDelete}
               >
                 Hapus
@@ -292,12 +308,19 @@ export default function OwnerBookingPage() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-600 mb-2">Tidak ada booking yang dipilih</h3>
                 <p className="text-sm">Pilih booking dari daftar untuk melihat detail</p>
-                
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* POPUP MODAL */}
+      <ModalPopup
+        isOpen={modalOpen}
+        type={modalType}
+        title={modalTitle}
+        onClose={handleModalClose}
+      />
     </div>
   );
 }
