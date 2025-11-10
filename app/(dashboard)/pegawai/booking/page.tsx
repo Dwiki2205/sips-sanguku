@@ -6,8 +6,10 @@ import BookingDetails from '@/components/booking/BookingDetails';
 import { Booking } from '@/types/booking';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { useRouter } from 'next/navigation'; // Tambahkan ini
 
 export default function OwnerBookingPage() {
+  const router = useRouter(); // Tambahkan router
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filtered, setFiltered] = useState<Booking[]>([]);
   const [selected, setSelected] = useState<Booking | null>(null);
@@ -32,6 +34,9 @@ export default function OwnerBookingPage() {
         setBookings(enriched);
         setFiltered(enriched);
         setTotal(data.pagination?.total || 0);
+        
+        // Reset selected ketika data berubah
+        setSelected(null);
       }
     } catch (error) {
       console.error('Gagal ambil data');
@@ -56,7 +61,28 @@ export default function OwnerBookingPage() {
       (b.nama_lengkap || '').toLowerCase().includes(lower)
     );
     setFiltered(result);
+    
+    // Jika selected tidak ada di filtered results, unselect
+    if (selected && !result.find(b => b.booking_id === selected.booking_id)) {
+      setSelected(null);
+    }
   }, [search, bookings]);
+
+  // Fungsi untuk handle select/unselect
+  const handleSelectBooking = (booking: Booking) => {
+    if (selected?.booking_id === booking.booking_id) {
+      // Unselect jika booking yang sama diklik
+      setSelected(null);
+    } else {
+      // Select booking baru
+      setSelected(booking);
+    }
+  };
+
+  // Fungsi untuk unselect secara eksplisit
+  const handleUnselect = () => {
+    setSelected(null);
+  };
 
   const getInitials = (name: string) => {
     if (!name || name === 'Unknown') return '??';
@@ -66,6 +92,15 @@ export default function OwnerBookingPage() {
   const totalPages = Math.ceil(total / limit) || 1;
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
+  const handleEdit = () => {
+    if (selected) {
+      router.push(`/owner/booking/edit/${selected.booking_id}`);
+    }
+  };
+
+  const handleAdd = () => {
+    router.push('/owner/booking/new');
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -89,8 +124,17 @@ export default function OwnerBookingPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* DAFTAR BOOKING - 1 BAGIAN DARI 3 */}
         <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
-          <div className="bg-blue-600 text-white p-4">
+          <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
             <h2 className="text-lg font-bold">Daftar Booking</h2>
+            {selected && (
+              <button
+                onClick={handleUnselect}
+                className="text-xs bg-blue-500 hover:bg-blue-400 px-2 py-1 rounded transition-colors"
+                title="Unselect booking"
+              >
+                Unselect
+              </button>
+            )}
           </div>
 
           <div className="flex-1 divide-y divide-gray-100 overflow-y-auto max-h-[600px]">
@@ -110,9 +154,11 @@ export default function OwnerBookingPage() {
               filtered.map((b) => (
                 <div
                   key={b.booking_id}
-                  onClick={() => setSelected(b)}
+                  onClick={() => handleSelectBooking(b)}
                   className={`p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-blue-50 ${
-                    selected?.booking_id === b.booking_id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                    selected?.booking_id === b.booking_id 
+                      ? 'bg-blue-100 border-l-4 border-blue-600 ring-2 ring-blue-200' 
+                      : ''
                   }`}
                 >
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
@@ -135,6 +181,9 @@ export default function OwnerBookingPage() {
                       })}
                     </p>
                   </div>
+                  {selected?.booking_id === b.booking_id && (
+                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  )}
                 </div>
               ))
             )}
@@ -177,28 +226,44 @@ export default function OwnerBookingPage() {
         {/* DETAIL BOOKING - 2 BAGIAN DARI 3 */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           <div className="bg-blue-600 text-white p-5 flex items-center justify-between">
-            <h2 className="text-xl font-bold">Detail Data Booking</h2>
+            <h2 className="text-xl font-bold">
+              {selected ? `Detail Booking #${selected.booking_id}` : 'Detail Data Booking'}
+            </h2>
             <div className="flex gap-2">
               <Button 
                 size="sm" 
                 variant="success"
                 className="bg-green-600 hover:bg-green-700 text-white" 
-                onClick={() => window.location.href = '/owner/booking/new'}
+                onClick={handleAdd}
+                disabled={!!selected} // Disable ketika ada yang selected
               >
                 Tambah
               </Button>
               <Button 
                 size="sm" 
                 variant="secondary" 
-                disabled={!selected} 
-                onClick={() => selected && (window.location.href = `/owner/booking/edit/${selected.booking_id}`)}
+                disabled={!selected} // Enable hanya ketika ada yang selected
+                onClick={handleEdit}
               >
                 Ubah
               </Button>
             </div>
           </div>
           <div className="p-6">
-            <BookingDetails booking={selected} />
+            {selected ? (
+              <BookingDetails booking={selected} />
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-600 mb-2">Tidak ada booking yang dipilih</h3>
+                <p className="text-sm">Pilih booking dari daftar untuk melihat detail</p>
+                
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MembershipDetails from '@/components/membership/MembershipDetails';
-import Modal from '@/components/ui/Modal';
 import { Membership } from '@/types/membership';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -37,6 +36,9 @@ export default function OwnerMembershipPage() {
         setMemberships(json.data);
         setFiltered(json.data);
         setTotal(json.pagination?.total || 0);
+        
+        // Reset selected ketika data berubah
+        setSelected(null);
       } else {
         console.error('Invalid response:', json);
         setMemberships([]);
@@ -59,6 +61,22 @@ export default function OwnerMembershipPage() {
     fetchMemberships();
   }, [page, search]);
 
+  // === FUNGSI SELECT/UNSELECT ===
+  const handleSelectMembership = (membership: Membership) => {
+    if (selected?.membership_id === membership.membership_id) {
+      // Unselect jika membership yang sama diklik
+      setSelected(null);
+    } else {
+      // Select membership baru
+      setSelected(membership);
+    }
+  };
+
+  // Fungsi untuk unselect secara eksplisit
+  const handleUnselect = () => {
+    setSelected(null);
+  };
+
   // === UTILS ===
   const getInitials = (name: string) => {
     return name
@@ -72,6 +90,17 @@ export default function OwnerMembershipPage() {
   const totalPages = Math.ceil(total / limit) || 1;
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
+
+  // === HANDLE ACTIONS ===
+  const handleAdd = () => {
+    router.push('/owner/membership/new');
+  };
+
+  const handleEdit = () => {
+    if (selected) {
+      router.push(`/owner/membership/edit/${selected.membership_id}`);
+    }
+  };
 
   // === HAPUS MEMBERSHIP ===
   const handleDelete = async () => {
@@ -133,11 +162,22 @@ export default function OwnerMembershipPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* DAFTAR MEMBERSHIP */}
         <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border overflow-hidden flex flex-col">
-          <div className="bg-blue-600 text-white p-4">
-            <h2 className="text-lg font-bold">Daftar Membership</h2>
-            <p className="text-xs opacity-90">
-              Total: {total} | Halaman {page} dari {totalPages}
-            </p>
+          <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold">Daftar Membership</h2>
+              <p className="text-xs opacity-90">
+                Total: {total} | Halaman {page} dari {totalPages}
+              </p>
+            </div>
+            {selected && (
+              <button
+                onClick={handleUnselect}
+                className="text-xs bg-blue-500 hover:bg-blue-400 px-2 py-1 rounded transition-colors"
+                title="Unselect membership"
+              >
+                Unselect
+              </button>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto max-h-[600px] divide-y">
@@ -155,10 +195,10 @@ export default function OwnerMembershipPage() {
               filtered.map((m) => (
                 <div
                   key={m.membership_id}
-                  onClick={() => setSelected(m)}
-                  className={`p-4 flex gap-3 cursor-pointer transition-all hover:bg-blue-50 ${
+                  onClick={() => handleSelectMembership(m)}
+                  className={`p-4 flex gap-3 cursor-pointer transition-all hover:bg-blue-50 relative ${
                     selected?.membership_id === m.membership_id
-                      ? 'bg-blue-50 border-l-4 border-blue-600'
+                      ? 'bg-blue-100 border-l-4 border-blue-600 ring-2 ring-blue-200'
                       : ''
                   }`}
                 >
@@ -195,6 +235,11 @@ export default function OwnerMembershipPage() {
                       })}
                     </p>
                   </div>
+
+                  {/* SELECTION INDICATOR */}
+                  {selected?.membership_id === m.membership_id && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-blue-600 rounded-full"></div>
+                  )}
                 </div>
               ))
             )}
@@ -227,27 +272,33 @@ export default function OwnerMembershipPage() {
         {/* DETAIL MEMBERSHIP */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl border overflow-hidden">
           <div className="bg-blue-600 text-white p-5 flex justify-between items-center">
-            <h2 className="text-xl font-bold">Detail Membership</h2>
+            <h2 className="text-xl font-bold">
+              {selected ? `Detail Membership #${selected.membership_id}` : 'Detail Membership'}
+            </h2>
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="success"
                 className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => router.push('/owner/membership/new')}
+                onClick={handleAdd}
+                disabled={!!selected} // Disable ketika ada yang selected
               >
                 Tambah
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!selected}
-                onClick={() =>
-                  selected && router.push(`/owner/membership/edit/${selected.membership_id}`)
-                }
+                disabled={!selected} // Enable hanya ketika ada yang selected
+                onClick={handleEdit}
               >
                 Ubah
               </Button>
-              <Button size="sm" variant="danger" disabled={!selected} onClick={handleDelete}>
+              <Button 
+                size="sm" 
+                variant="danger" 
+                disabled={!selected} // Enable hanya ketika ada yang selected
+                onClick={handleDelete}
+              >
                 Hapus
               </Button>
             </div>
@@ -258,8 +309,26 @@ export default function OwnerMembershipPage() {
               <MembershipDetails membership={selected} />
             ) : (
               <div className="text-center py-12 text-gray-500">
-                <div className="bg-gray-200 border-2 border-dashed rounded-xl w-24 h-24 mx-auto mb-4" />
-                <p className="font-medium">Pilih membership untuk melihat detail</p>
+                <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <svg 
+                    className="w-12 h-12 text-gray-400" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-600 mb-2">
+                  Tidak ada membership yang dipilih
+                </h3>
+                <p className="text-sm mb-4">Pilih membership dari daftar untuk melihat detail</p>
+                
               </div>
             )}
           </div>

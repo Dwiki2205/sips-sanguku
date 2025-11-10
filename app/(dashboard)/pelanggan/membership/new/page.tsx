@@ -47,7 +47,7 @@ export default function PelangganMembershipPage() {
       })
       .catch(() => {
         alert('Silakan login terlebih dahulu');
-        router.push('/login');
+        router.push('/');
       })
       .finally(() => setLoading(false));
   }, [router]);
