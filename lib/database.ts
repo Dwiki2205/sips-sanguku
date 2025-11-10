@@ -1,36 +1,25 @@
 // lib/database.ts
 import pool from './db';
 
-let devDB: any = null;
-
-async function getDevDB() {
-  if (!devDB && process.env.NODE_ENV === 'development') {
-    try {
-      const module = await import('./db-dev');
-      devDB = module.devDB;
-    } catch (error) {
-      console.error('Gagal load devDB:', error);
-    }
-  }
-  return devDB;
-}
-
 export async function query(sql: string, params: any[] = []) {
+  let client;
   try {
-    const client = await pool.connect();
-    try {
-      console.log('Using PostgreSQL (Neon.tech)');
-      return await client.query(sql, params);
-    } finally {
+    client = await pool.connect();
+    console.log('📊 Executing query:', sql.substring(0, 50) + '...');
+    const startTime = Date.now();
+    const result = await client.query(sql, params);
+    const duration = Date.now() - startTime;
+    console.log(`✅ Query completed in ${duration}ms`);
+    return result;
+  } catch (error: any) {
+    console.error('❌ Query failed:', error.message);
+    console.error('   SQL:', sql.substring(0, 100));
+    console.error('   Params:', params);
+    throw new Error(`Database error: ${error.message}`);
+  } finally {
+    if (client) {
       client.release();
     }
-  } catch (error) {
-    console.log('PostgreSQL gagal, fallback ke SQLite...');
-    if (process.env.NODE_ENV === 'development') {
-      const db = await getDevDB();
-      if (db) return db.query(sql, params);
-    }
-    throw new Error('Database tidak tersedia');
   }
 }
 

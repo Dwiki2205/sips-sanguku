@@ -60,7 +60,7 @@ export default function ResetPasswordPage({ params }: PageProps) {
         setFormData({ password: '', confirmPassword: '' });
         
         setTimeout(() => {
-          router.push('/login');
+          router.push('/');
         }, 3000);
       } else {
         setError(data.error || 'Gagal reset password');
@@ -144,7 +144,7 @@ export default function ResetPasswordPage({ params }: PageProps) {
           <div className="text-center">
             <button
               type="button"
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/')}
               className="text-primary-600 hover:text-primary-500 text-sm font-medium"
             >
               Kembali ke Login

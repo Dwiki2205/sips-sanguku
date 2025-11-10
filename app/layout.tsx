@@ -1,24 +1,18 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { AuthProvider } from '@/context/AuthContext'
-
-export const metadata: Metadata = {
-  title: 'SIPS - Sistem Informasi Pengelolaan Sanguku',
-  description: 'Sistem Informasi untuk mengelola booking dan membership Sanguku',
-}
+import { AuthProvider } from '@/context/AuthContext';
+import './globals.css';
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="id">
-      <body className="min-h-screen bg-gray-50">
+      <body>
         <AuthProvider>
           {children}
         </AuthProvider>
       </body>
     </html>
-  )
+  );
 }

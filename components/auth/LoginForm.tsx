@@ -23,7 +23,7 @@ export default function LoginForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
-        credentials: 'include', // WAHHHHH
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -47,7 +47,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+        <div className="bg-red-50/90 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">
           {error}
         </div>
       )}
@@ -61,7 +61,7 @@ export default function LoginForm() {
         value={formData.username}
         onChange={handleChange}
         disabled={loading}
-        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 rounded-xl h-12 text-base"
+        className="bg-white/95 border-gray-300 text-gray-900 placeholder-gray-400 rounded-xl h-12 text-base"
       />
 
       <Input
@@ -74,25 +74,23 @@ export default function LoginForm() {
         onChange={handleChange}
         disabled={loading}
         showPasswordToggle={true}
-        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 rounded-xl h-12 text-base"
+        className="bg-white/95 border-gray-300 text-gray-900 placeholder-gray-400 rounded-xl h-12 text-base"
       />
 
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between text-sm text-white/80">
         <div className="flex items-center">
-          <input id="remember" type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-          <label htmlFor="remember" className="ml-2 text-gray-700">Remember me</label>
+          <input id="remember" type="checkbox" className="h-4 w-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500" />
+          <label htmlFor="remember" className="ml-2">Remember me</label>
         </div>
-        <Link href="/lupa-password" className="text-blue-600 hover:text-blue-500 font-medium">
+        <Link href="/lupa-password" className="text-blue-400 hover:text-blue-300 font-medium">
           Forgot password?
         </Link>
       </div>
 
       <Button
         type="submit"
-        variant="primary"
-        size="lg"
         loading={loading}
-        className="w-full bg-white text-blue-600 hover:bg-gray-50 font-semibold rounded-xl h-12 shadow-md border border-gray-200"
+        className="w-full bg-white text-blue-600 hover:bg-gray-100 font-semibold rounded-xl h-12 shadow-md border border-gray-200"
       >
         Log In
       </Button>

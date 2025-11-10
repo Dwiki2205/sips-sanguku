@@ -77,7 +77,7 @@ export default function ForgotPasswordForm() {
       <div className="flex items-center justify-between">
         <div className="text-sm">
           <Link 
-            href="/login" 
+            href="/" 
             className="font-medium text-indigo-600 hover:text-indigo-500"
           >
             Kembali ke login

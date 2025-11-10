@@ -15,10 +15,10 @@ export default function DashboardRedirectPage() {
       if (role) {
         router.push(`/${role}/dashboard`);
       } else {
-        router.push('/login');
+        router.push('/');
       }
     } else {
-      router.push('/login');
+      router.push('/');
     }
   }, [user, router]);
 

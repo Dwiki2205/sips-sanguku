@@ -1,4 +1,3 @@
-// context/AuthContext.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -8,7 +7,7 @@ import { useRouter } from 'next/navigation';
 interface AuthContextType {
   user: User | null;
   login: (token: string, userData: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -25,10 +24,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+      });
+      
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        
+        // Auto-redirect jika sudah login dan di halaman root
+        if (typeof window !== 'undefined' && window.location.pathname === '/') {
+          const role = userData.role_name?.toLowerCase();
+          if (role && ['owner', 'pegawai', 'pelanggan'].includes(role)) {
+            router.push(`/${role}/dashboard`);
+          } else {
+            router.push('/dashboard');
+          }
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -43,27 +55,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const role = userData.role_name?.toLowerCase();
 
     if (!role) {
-      router.push('/login');
+      router.push('/');
       return;
     }
 
     const validRoles = ['owner', 'pegawai', 'pelanggan'];
-    if (!validRoles.includes(role)) {
-      router.push('/login');
-      return;
+    if (validRoles.includes(role)) {
+      router.push(`/${role}/dashboard`);
+    } else {
+      router.push('/dashboard');
     }
-
-    router.push(`/${role}/dashboard`);
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      console.log('🔄 Starting logout process...');
+      
+      const response = await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Logout failed with status: ${response.status}`);
+      }
+
+      console.log('✅ Logout API success');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout API error:', error);
     } finally {
+      // SELALU clear state
       setUser(null);
-      router.push('/login');
+      
+      // **FIX: Clear any pending navigation dan force redirect**
+      if (typeof window !== 'undefined') {
+        // Method 1: Force redirect dengan replace (recommended)
+        window.location.replace('/');
+        
+        // Atau Method 2: Hard redirect
+        // window.location.href = '/';
+      }
     }
   };
 

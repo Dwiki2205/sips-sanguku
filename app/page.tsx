@@ -1,37 +1,43 @@
-import Link from 'next/link'
+// app/page.tsx
+import LoginForm from '@/components/auth/LoginForm';
+import Image from 'next/image';
 
-export default function HomePage() {
+export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">SIPS</h1>
-        <p className="text-lg text-gray-600 mb-8">
-          Sistem Informasi Pengelolaan Sanguku
-        </p>
-        <div className="space-y-4">
-          <Link 
-            href="/login" 
-            className="block w-full bg-indigo-600 text-white py-3 px-4 rounded-md font-medium hover:bg-indigo-700 transition-colors"
-          >
-            Login
-          </Link>
-          <Link 
-            href="/registrasi" 
-            className="block w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-md font-medium hover:bg-gray-50 transition-colors"
-          >
-            Daftar Akun Baru
-          </Link>
-        </div>
-        
-        {/* Demo Accounts Info */}
-        <div className="mt-8 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">Akun Demo:</h3>
-          <div className="text-xs text-gray-600 space-y-1">
-            <div><strong>Owner:</strong> owner / admin123</div>
-            <div><strong>Pegawai:</strong> pegawai / pegawai123</div>
-          </div>
+    <div className="relative min-h-screen flex items-center justify-center md:justify-end p-4 sm:p-6 md:p-8 overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/images/bgsanguku.png"
+          alt="Sanguku Cafe"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+
+      {/* Login Card - DI KANAN, TIDAK TERLALU KIRI */}
+      <div className="w-full max-w-md md:mr-32 lg:mr-36 xl:mr-44">
+        <div className="backdrop-blur-lg bg-blue-600/20 rounded-3xl shadow-2xl p-6 sm:p-8 border border-white/50">
+          
+          {/* Header */}
+          <h1 className="text-center text-3xl sm:text-4xl font-bold text-white mb-8">
+            Welcome back!
+          </h1>
+
+          {/* Form */}
+          <LoginForm />
+
+          {/* Sign Up Link */}
+          <p className="mt-6 text-center text-sm text-white">
+            Don’t have account?{' '}
+            <a href="/registrasi" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign Up!
+            </a>
+          </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
