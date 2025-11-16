@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
+// PERBAIKAN: Tambahkan ini
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const startTime = Date.now();
   
