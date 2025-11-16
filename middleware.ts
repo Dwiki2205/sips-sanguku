@@ -10,12 +10,15 @@ export function middleware(request: NextRequest) {
   const isPublicPath = publicPaths.includes(pathname)
 
   // Route dashboard/protected
-  const isProtectedPath = pathname.startsWith('/owner') || 
+  const isProtectedPath = pathname.startsWith('/owner') ||
+                        pathname.startsWith('/manager') || 
                          pathname.startsWith('/pegawai') || 
                          pathname.startsWith('/pelanggan') ||
                          pathname.startsWith('/dashboard') ||
                          pathname.startsWith('/booking') ||
-                         pathname.startsWith('/membership')
+                         pathname.startsWith('/membership') ||
+                         pathname.startsWith('/stok') ||
+                         pathname.startsWith('/laporan')
 
   // **FIX: Redirect /login ke / (karena / adalah halaman login)**
   if (pathname === '/login') {

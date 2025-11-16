@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Auto-redirect jika sudah login dan di halaman root
         if (typeof window !== 'undefined' && window.location.pathname === '/') {
           const role = userData.role_name?.toLowerCase();
-          if (role && ['owner', 'pegawai', 'pelanggan'].includes(role)) {
+          if (role && ['owner', 'manager', 'pegawai', 'pelanggan'].includes(role)) {
             router.push(`/${role}/dashboard`);
           } else {
             router.push('/dashboard');
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const validRoles = ['owner', 'pegawai', 'pelanggan'];
+    const validRoles = ['owner', 'manager', 'pegawai', 'pelanggan'];
     if (validRoles.includes(role)) {
       router.push(`/${role}/dashboard`);
     } else {

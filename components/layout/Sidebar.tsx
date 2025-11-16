@@ -8,6 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import {
   CalendarIcon,
   UserGroupIcon,
+  ShoppingCartIcon,
+  DocumentChartBarIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 
@@ -30,6 +32,14 @@ const SIDEBAR_COLORS = {
   iconActive: 'text-white',
 };
 
+// Definisikan tipe untuk menu navigasi
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: any;
+  roles: string[]; // Role yang diizinkan mengakses menu ini
+}
+
 export default function Sidebar({
   open,
   setOpen,
@@ -44,11 +54,46 @@ export default function Sidebar({
   const basePath = user?.role_name ? `/${user.role_name.toLowerCase()}` : '/';
   const dashboardPath = `${basePath}/dashboard`;
 
-  // Navigasi tanpa "Dashboard"
-  const navigation = [
-    { name: 'Membership', href: `${basePath}/membership`, icon: UserGroupIcon },
-    { name: 'Booking', href: `${basePath}/booking`, icon: CalendarIcon },
+  // Definisikan semua navigasi dengan permission role
+  const allNavigation: NavigationItem[] = [
+    { 
+      name: 'Membership', 
+      href: `${basePath}/membership`, 
+      icon: UserGroupIcon,
+      roles: ['owner', 'pegawai', 'pelanggan'] // Owner, Pegawai, Pelanggan
+    },
+    { 
+      name: 'Booking', 
+      href: `${basePath}/booking`, 
+      icon: CalendarIcon,
+      roles: ['owner', 'pegawai', 'pelanggan'] // Owner, Pegawai, Pelanggan
+    },
+    { 
+      name: 'Stok', 
+      href: `${basePath}/stok`, 
+      icon: ShoppingCartIcon,
+      roles: ['manager', 'pegawai'] // Manager, Pegawai
+    },
+    { 
+      name: 'Laporan', 
+      href: `${basePath}/laporan`, 
+      icon: DocumentChartBarIcon,
+      roles: ['manager'] // Hanya Manager
+    },
   ];
+
+  // Filter navigasi berdasarkan role user
+  const getFilteredNavigation = (): NavigationItem[] => {
+    if (!user?.role_name) return [];
+    
+    const userRole = user.role_name.toLowerCase();
+    
+    return allNavigation.filter(item => 
+      item.roles.includes(userRole)
+    );
+  };
+
+  const navigation = getFilteredNavigation();
 
   const handleLogout = async () => {
     await logout();
@@ -175,14 +220,6 @@ export default function Sidebar({
             >
               SIPS
             </Link>
-
-            {/* Collapse Toggle (Optional - tambahkan jika perlu) */}
-            {/* <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="text-blue-300 hover:text-white"
-            >
-              {collapsed ? <Bars3Icon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
-            </button> */}
           </div>
 
           {/* Navigation */}

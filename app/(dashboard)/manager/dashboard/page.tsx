@@ -1,0 +1,20 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+
+export default function OwnerDashboardPage() {
+  const { user } = useAuth();
+  
+  return (
+    <div className="space-y-6">
+      {/* Welcome Message */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Selamat Datang, {user?.nama}!</h2>
+        <p className="text-gray-600">
+          Anda login sebagai <strong>Manager</strong>. Anda memiliki akses penuh untuk mengelola Stok dan Laporan.
+        </p>
+      </div>
+    </div>
+  );
+}
