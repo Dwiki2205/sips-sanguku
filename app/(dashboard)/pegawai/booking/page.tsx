@@ -93,20 +93,6 @@ export default function OwnerBookingPage() {
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
 
-  const handleEdit = () => {
-    if (!selected) {
-      setModalType('warning');
-      setModalTitle('Tidak ada booking yang dipilih');
-      setModalOpen(true);
-      return;
-    }
-    router.push(`/owner/booking/edit/${selected.booking_id}`);
-  };
-
-  const handleAdd = () => {
-    router.push('/owner/booking/new');
-  };
-
   const handleModalClose = () => {
     setModalOpen(false);
   };
@@ -234,24 +220,6 @@ export default function OwnerBookingPage() {
             <h2 className="text-xl font-bold">
               {selected ? `Detail Booking #${selected.booking_id}` : 'Detail Data Booking'}
             </h2>
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="success"
-                className="bg-green-600 hover:bg-green-700 text-white" 
-                onClick={handleAdd}
-              >
-                Tambah
-              </Button>
-              <Button 
-                size="sm" 
-                variant="secondary" 
-                disabled={!selected}
-                onClick={handleEdit}
-              >
-                Ubah
-              </Button>
-            </div>
           </div>
           <div className="p-6">
             {selected ? (

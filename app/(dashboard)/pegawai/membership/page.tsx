@@ -91,17 +91,6 @@ export default function OwnerMembershipPage() {
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
 
-  // === HANDLE ACTIONS ===
-  const handleAdd = () => {
-    router.push('/owner/membership/new');
-  };
-
-  const handleEdit = () => {
-    if (selected) {
-      router.push(`/owner/membership/edit/${selected.membership_id}`);
-    }
-  };
-
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* HEADER & SEARCH */}
@@ -251,26 +240,6 @@ export default function OwnerMembershipPage() {
             <h2 className="text-xl font-bold">
               {selected ? `Detail Membership #${selected.membership_id}` : 'Detail Membership'}
             </h2>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="success"
-                className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={handleAdd}
-                disabled={!!selected} // Disable ketika ada yang selected
-              >
-                Tambah
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={!selected} // Enable hanya ketika ada yang selected
-                onClick={handleEdit}
-              >
-                Ubah
-              </Button>
-              
-            </div>
           </div>
 
           <div className="p-6">
