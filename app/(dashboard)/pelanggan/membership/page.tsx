@@ -53,14 +53,14 @@ export default function MembershipTncPage() {
                 <div className="border-2 border-yellow-400 rounded-xl p-5 bg-yellow-50 relative">
                   <h4 className="font-bold text-lg text-yellow-700">Gold</h4>
                   <p className="text-2xl font-bold text-yellow-600 mt-2">5 – 14 booking</p>
-                  <p className="text-sm mt-2">Upgrade manual setelah mencapai 5 booking sukses.</p>
+                  <p className="text-sm mt-2">Upgrade otomatis setelah mencapai 5 booking sukses.</p>
                 </div>
 
                 {/* Platinum */}
                 <div className="border-2 border-purple-500 rounded-xl p-5 bg-purple-50 relative">
                   <h4 className="font-bold text-lg text-purple-700">Platinum</h4>
                   <p className="text-3xl font-bold text-purple-600 mt-2">≥ 15 booking</p>
-                  <p className="text-sm mt-2">Tier tertinggi. Upgrade manual setelah mencapai 15 booking sukses.</p>
+                  <p className="text-sm mt-2">Tier tertinggi. Upgrade otomatis setelah mencapai 15 booking sukses.</p>
                 </div>
               </div>
             </div>
@@ -80,7 +80,7 @@ export default function MembershipTncPage() {
                 <li>Mematuhi seluruh aturan penggunaan lapangan, termasuk datang tepat waktu dan menjaga kebersihan.</li>
                 <li>Pembatalan booking <strong>maksimal 6 jam sebelum jadwal</strong> untuk menghindari penalti.</li>
                 <li><strong>Tidak meminjamkan atau mengalihkan akun membership</strong> kepada orang lain.</li>
-                <li>Setiap upgrade tier dilakukan secara <strong>manual oleh member</strong> melalui sistem.</li>
+                <li>Setiap upgrade tier dilakukan secara <strong>otomatis</strong> melalui sistem.</li>
                 <li>Member bertanggung jawab untuk <strong>memantau jumlah booking</strong> dan melakukan upgrade ketika syarat terpenuhi.</li>
               </ol>
             </div>

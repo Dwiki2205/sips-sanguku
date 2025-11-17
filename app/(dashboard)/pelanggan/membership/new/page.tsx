@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import ModalPopup from '@/components/ui/ModalPopup';
-import { ArrowLeft, Info, CheckCircle, Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Info, CheckCircle, Lock, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 
 // Define types
 interface MembershipForm {
@@ -40,6 +40,8 @@ export default function PelangganMembershipPage() {
   const [bookingCount, setBookingCount] = useState(0);
   const [allowedTiers, setAllowedTiers] = useState<string[]>(['Silver']);
   const [debugInfo, setDebugInfo] = useState<DebugInfo>({});
+  const [autoUpgradeAvailable, setAutoUpgradeAvailable] = useState(false);
+  const [recommendedTier, setRecommendedTier] = useState('Silver');
 
   const [form, setForm] = useState<MembershipForm>({
     tanggal_daftar: new Date().toISOString().split('T')[0],
@@ -78,7 +80,7 @@ export default function PelangganMembershipPage() {
     Gold: { 
       minBooking: 5, 
       maxBooking: 14, 
-      description: 'Naik manual dari Silver',
+      description: 'Upgrade otomatis dari Silver',
       benefits: [
         'Diskon 15% untuk setiap booking',
         '1x booking gratis per bulan',
@@ -89,7 +91,7 @@ export default function PelangganMembershipPage() {
     Platinum: { 
       minBooking: 15, 
       maxBooking: null, 
-      description: 'Tier tertinggi - naik manual dari Gold',
+      description: 'Tier tertinggi - upgrade otomatis dari Gold',
       benefits: [
         'Diskon 30% untuk setiap booking',
         '3x booking gratis per bulan',
@@ -144,6 +146,66 @@ export default function PelangganMembershipPage() {
         required: null,
         progress: 100
       };
+    }
+  };
+
+  // Fungsi untuk memeriksa apakah perlu upgrade otomatis
+  const checkAutoUpgrade = (currentMembership: any, bookingCount: number): boolean => {
+    if (!currentMembership) return false;
+    
+    const currentTier = currentMembership.tier_membership;
+    const recommendedTier = getRecommendedTier(bookingCount);
+    
+    // Cek apakah tier saat ini lebih rendah dari yang direkomendasikan
+    const tierOrder = ['Silver', 'Gold', 'Platinum'];
+    const currentIndex = tierOrder.indexOf(currentTier);
+    const recommendedIndex = tierOrder.indexOf(recommendedTier);
+    
+    return recommendedIndex > currentIndex;
+  };
+
+  // Fungsi untuk melakukan upgrade otomatis
+  const performAutoUpgrade = async () => {
+    if (!existingMembership || !autoUpgradeAvailable) return;
+    
+    const newTier = getRecommendedTier(bookingCount);
+    
+    try {
+      const requestBody = {
+        membership_id: existingMembership.membership_id,
+        pelanggan_id: user.pengguna_id,
+        tanggal_daftar: existingMembership.tanggal_daftar,
+        tier_membership: newTier,
+        expired_date: existingMembership.expired_date,
+        status_keaktifan: 'active',
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Performing auto-upgrade:', requestBody);
+
+      const res = await fetch(`/api/membership/${existingMembership.membership_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (res.ok) {
+        // Update local state
+        setExistingMembership({ ...existingMembership, tier_membership: newTier });
+        setForm(prev => ({ ...prev, tier_membership: newTier }));
+        
+        setModalType('success');
+        setModalTitle('Upgrade Otomatis Berhasil!');
+        setModalMessage(`Selamat! Membership Anda telah diupgrade otomatis ke tier ${newTier} karena telah mencapai ${bookingCount} booking sukses.`);
+        setModalOpen(true);
+        
+        // Reset auto upgrade flag
+        setAutoUpgradeAvailable(false);
+      } else {
+        console.error('Auto-upgrade failed');
+      }
+    } catch (error) {
+      console.error('Error during auto-upgrade:', error);
     }
   };
 
@@ -204,7 +266,12 @@ export default function PelangganMembershipPage() {
         setBookingCount(count);
         const tiers = getAllowedTiers(count);
         setAllowedTiers(tiers);
+        
+        const recTier = getRecommendedTier(count);
+        setRecommendedTier(recTier);
+        
         console.log('✅ Allowed tiers:', tiers);
+        console.log('✅ Recommended tier:', recTier);
 
         // 3. Process membership data
         let activeMembership = null;
@@ -229,31 +296,45 @@ export default function PelangganMembershipPage() {
           if (activeMembership) {
             console.log('✅ Active membership found:', activeMembership);
             setExistingMembership(activeMembership);
+            
+            // Check if auto-upgrade is available
+            const needsUpgrade = checkAutoUpgrade(activeMembership, count);
+            setAutoUpgradeAvailable(needsUpgrade);
+            console.log('🔄 Auto-upgrade available:', needsUpgrade);
+            
+            if (needsUpgrade) {
+              // Tampilkan notifikasi upgrade otomatis
+              setTimeout(() => {
+                setModalType('warning');
+                setModalTitle('Upgrade Otomatis Tersedia!');
+                setModalMessage(`Anda memenuhi syarat untuk upgrade otomatis ke ${recTier} karena telah mencapai ${count} booking sukses. Klik "Upgrade Otomatis" untuk meningkatkan tier membership Anda.`);
+                setModalOpen(true);
+              }, 1000);
+            }
           } else {
             console.log('ℹ️ No active membership found');
             setExistingMembership(null);
+            setAutoUpgradeAvailable(false);
           }
         } else {
           console.log('❌ Invalid membership data structure:', membershipData);
           setExistingMembership(null);
+          setAutoUpgradeAvailable(false);
         }
 
         // 4. Set form values
-        const recommendedTier = getRecommendedTier(count);
-        console.log('🎯 Recommended tier:', recommendedTier);
-        
         if (activeMembership) {
           setForm({
             tanggal_daftar: new Date().toISOString().split('T')[0],
             tier_membership: tiers.includes(activeMembership.tier_membership) 
               ? activeMembership.tier_membership 
-              : recommendedTier,
+              : recTier,
             expired_date: '',
           });
         } else {
           setForm((prev: MembershipForm) => ({
             ...prev,
-            tier_membership: recommendedTier
+            tier_membership: recTier
           }));
         }
 
@@ -380,6 +461,9 @@ export default function PelangganMembershipPage() {
           setModalMessage(`Selamat! Membership ${form.tier_membership} Anda telah aktif hingga ${new Date(form.expired_date).toLocaleDateString('id-ID')}.`);
         }
         setModalOpen(true);
+        
+        // Reset auto upgrade setelah perubahan manual
+        setAutoUpgradeAvailable(false);
       } else {
         const err = await res.json();
         setModalType('error');
@@ -403,6 +487,11 @@ export default function PelangganMembershipPage() {
     if (modalType === 'success') {
       router.push('/pelanggan/dashboard');
     }
+  };
+
+  const handleAutoUpgrade = () => {
+    performAutoUpgrade();
+    setModalOpen(false);
   };
 
   if (loading) {
@@ -435,7 +524,6 @@ export default function PelangganMembershipPage() {
   }
 
   const isEditing = existingMembership && existingMembership.status_keaktifan === 'active';
-  const recommendedTier = getRecommendedTier(bookingCount);
   const nextTierProgress = getNextTierProgress(bookingCount);
 
   return (
@@ -452,7 +540,7 @@ export default function PelangganMembershipPage() {
             </button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold">
-                {isEditing ? 'Upgrade Membership' : 'Tambah Membership Baru'}
+                {isEditing ? 'Kelola Membership' : 'Tambah Membership Baru'}
               </h1>
               <p className="text-blue-100 mt-1">
                 {isEditing 
@@ -472,6 +560,31 @@ export default function PelangganMembershipPage() {
             </Button>
           </div>
         </div>
+
+        {/* NOTIFIKASI UPGRADE OTOMATIS */}
+        {autoUpgradeAvailable && (
+          <div className="mx-6 mt-6 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Zap className="w-6 h-6" />
+                <div>
+                  <h3 className="font-bold">Upgrade Otomatis Tersedia!</h3>
+                  <p className="text-sm">
+                    Anda memenuhi syarat untuk upgrade ke {recommendedTier} ({bookingCount} booking)
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={performAutoUpgrade}
+                variant="primary"
+                size="sm"
+                className="bg-white text-orange-600 hover:bg-gray-100 font-bold"
+              >
+                Upgrade Sekarang
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* INFORMASI BOOKING & PROGRESS */}
         <div className="p-6">
@@ -519,7 +632,7 @@ export default function PelangganMembershipPage() {
                       ></div>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Butuh {nextTierProgress.required! - nextTierProgress.current} booking lagi untuk upgrade ke {nextTierProgress.nextTier}
+                      Butuh {nextTierProgress.required! - nextTierProgress.current} booking lagi untuk upgrade otomatis ke {nextTierProgress.nextTier}
                     </p>
                   </div>
                 ) : (
@@ -532,11 +645,11 @@ export default function PelangganMembershipPage() {
                 <div className="space-y-2 text-sm">
                   <div className={`flex items-center gap-2 ${bookingCount >= 5 ? 'text-green-600' : 'text-gray-500'}`}>
                     {bookingCount >= 5 ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    <span>Gold: 5+ booking sukses</span>
+                    <span>Gold: 5+ booking sukses (upgrade otomatis)</span>
                   </div>
                   <div className={`flex items-center gap-2 ${bookingCount >= 15 ? 'text-green-600' : 'text-gray-500'}`}>
                     {bookingCount >= 15 ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    <span>Platinum: 15+ booking sukses</span>
+                    <span>Platinum: 15+ booking sukses (upgrade otomatis)</span>
                   </div>
                 </div>
               </div>
@@ -708,6 +821,20 @@ export default function PelangganMembershipPage() {
               >
                 Batal
               </Button>
+              
+              {autoUpgradeAvailable && (
+                <Button 
+                  type="button"
+                  variant="primary"
+                  size="lg"
+                  onClick={performAutoUpgrade}
+                  className="px-8 bg-orange-500 hover:bg-orange-600"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Upgrade Otomatis
+                </Button>
+              )}
+              
               <Button 
                 type="submit" 
                 variant="primary" 
@@ -721,7 +848,7 @@ export default function PelangganMembershipPage() {
                     Menyimpan...
                   </>
                 ) : isEditing ? (
-                  'Upgrade Membership'
+                  'Perpanjang/Upgrade Manual'
                 ) : (
                   'Daftar Membership'
                 )}
@@ -738,6 +865,27 @@ export default function PelangganMembershipPage() {
         title={modalTitle}
         message={modalMessage}
         onClose={handleModalClose}
+        customButtons={
+          modalType === 'warning' && autoUpgradeAvailable ? (
+            <div className="flex gap-3 mt-4">
+              <Button
+                variant="danger"
+                onClick={handleModalClose}
+                className="flex-1"
+              >
+                Nanti Saja
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleAutoUpgrade}
+                className="flex-1 bg-orange-500 hover:bg-orange-600"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Upgrade Otomatis
+              </Button>
+            </div>
+          ) : undefined
+        }
       />
     </>
   );

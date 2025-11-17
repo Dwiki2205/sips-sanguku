@@ -1,5 +1,6 @@
 // components/ui/ModalPopup.tsx
 import { X } from 'lucide-react';
+import { ReactNode } from 'react';
 
 type ModalType = 'success' | 'warning' | 'error';
 
@@ -7,8 +8,9 @@ interface ModalPopupProps {
   isOpen: boolean;
   type: ModalType;
   title: string;
-  message?: string; // Tambahkan prop message (opsional)
+  message?: string;
   onClose: () => void;
+  customButtons?: ReactNode; // Tambahkan prop customButtons
 }
 
 const iconMap = {
@@ -41,7 +43,14 @@ const buttonColorMap = {
   error: 'bg-red-600 hover:bg-red-700',
 };
 
-export default function ModalPopup({ isOpen, type, title, message, onClose }: ModalPopupProps) {
+export default function ModalPopup({ 
+  isOpen, 
+  type, 
+  title, 
+  message, 
+  onClose, 
+  customButtons 
+}: ModalPopupProps) {
   if (!isOpen) return null;
 
   return (
@@ -69,12 +78,19 @@ export default function ModalPopup({ isOpen, type, title, message, onClose }: Mo
             )}
           </div>
 
-          <button
-            onClick={onClose}
-            className={`px-8 py-3 rounded-lg font-medium text-white transition ${buttonColorMap[type]}`}
-          >
-            OK
-          </button>
+          {/* Tampilkan custom buttons jika ada, jika tidak tampilkan tombol default */}
+          {customButtons ? (
+            <div className="w-full">
+              {customButtons}
+            </div>
+          ) : (
+            <button
+              onClick={onClose}
+              className={`px-8 py-3 rounded-lg font-medium text-white transition ${buttonColorMap[type]}`}
+            >
+              OK
+            </button>
+          )}
         </div>
       </div>
     </div>
