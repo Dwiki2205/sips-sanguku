@@ -85,10 +85,10 @@ export default function MembershipTncPage() {
               </ol>
             </div>
 
-            {/* INFO BOX */}
+            {/* INFO BOX - YANG DIPERBAIKI */}
             <div className="mt-10 p-6 bg-blue-50 rounded-xl border-2 border-blue-300">
               <p className="text-center text-blue-900 font-semibold">
-                Dengan menekan tombol "Lanjut ke Pendaftaran", Anda menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan Membership Sanguku di atas, termasuk sistem upgrade manual.
+                Dengan menekan tombol &quot;Lanjut ke Pendaftaran&quot;, Anda menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan Membership Sanguku di atas, termasuk sistem upgrade manual.
               </p>
             </div>
           </div>
