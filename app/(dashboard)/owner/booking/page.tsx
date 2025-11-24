@@ -1,4 +1,3 @@
-// app/(dashboard)/owner/booking/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,16 +6,19 @@ import { Booking } from '@/types/booking';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useRouter } from 'next/navigation';
-import ModalPopup from '@/components/ui/ModalPopup'; // ← Tambahkan ini
+import ModalPopup from '@/components/ui/ModalPopup';
 
 export default function OwnerBookingPage() {
   const router = useRouter();
 
-  // State untuk modal
+  // === STATE MODAL (satu modal untuk semua keperluan) ===
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'warning' | 'error'>('success');
   const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState<string | React.ReactNode>('');
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => Promise<void> | void) | null>(null);
 
+  // === STATE BOOKING ===
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filtered, setFiltered] = useState<Booking[]>([]);
   const [selected, setSelected] = useState<Booking | null>(null);
@@ -26,6 +28,7 @@ export default function OwnerBookingPage() {
   const [loading, setLoading] = useState(false);
   const limit = 7;
 
+  // === FETCH DATA ===
   const fetchBookings = async () => {
     try {
       setLoading(true);
@@ -41,10 +44,9 @@ export default function OwnerBookingPage() {
         setBookings(enriched);
         setFiltered(enriched);
         setTotal(data.pagination?.total || 0);
-        setSelected(null);
       }
     } catch (error) {
-      console.error('Gagal ambil data');
+      console.error('Gagal mengambil data booking:', error);
     } finally {
       setLoading(false);
     }
@@ -59,6 +61,7 @@ export default function OwnerBookingPage() {
     fetchBookings();
   }, [page]);
 
+  // === FILTER BERDASARKAN SEARCH ===
   useEffect(() => {
     const lower = search.toLowerCase();
     const result = bookings.filter(b =>
@@ -72,18 +75,7 @@ export default function OwnerBookingPage() {
     }
   }, [search, bookings]);
 
-  const handleSelectBooking = (booking: Booking) => {
-    if (selected?.booking_id === booking.booking_id) {
-      setSelected(null);
-    } else {
-      setSelected(booking);
-    }
-  };
-
-  const handleUnselect = () => {
-    setSelected(null);
-  };
-
+  // === HELPER ===
   const getInitials = (name: string) => {
     if (!name || name === 'Unknown') return '??';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -93,46 +85,79 @@ export default function OwnerBookingPage() {
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
 
-  // === HAPUS DENGAN POPUP ===
-  const handleDelete = async () => {
-    if (!selected) {
-      setModalType('warning');
-      setModalTitle('Tidak ada booking yang dipilih');
-      setModalOpen(true);
-      return;
-    }
-
-    // Konfirmasi dulu (opsional, bisa langsung popup)
-    if (!confirm(`Hapus booking #${selected.booking_id}?`)) return;
-
-    try {
-      const res = await fetch(`/api/booking?id=${selected.booking_id}`, { 
-        method: 'DELETE' 
-      });
-      
-      if (res.ok) {
-        setModalType('success');
-        setModalTitle('Booking berhasil dihapus!');
-        setModalOpen(true);
-        setSelected(null);
-        await refetchBookings();
-      } else {
-        setModalType('warning');
-        setModalTitle('Gagal menghapus booking');
-        setModalOpen(true);
-      }
-    } catch (error) {
-      setModalType('warning');
-      setModalTitle('Gagal menghapus booking');
-      setModalOpen(true);
-    }
+  const handleSelectBooking = (booking: Booking) => {
+    setSelected(selected?.booking_id === booking.booking_id ? null : booking);
   };
 
+  const handleUnselect = () => setSelected(null);
+
+  // === MODAL HANDLER ===
+  const openModal = (
+    type: 'success' | 'warning' | 'error',
+    title: string,
+    message: string | React.ReactNode,
+    onConfirm?: () => Promise<void> | void
+  ) => {
+    setModalType(type);
+    setModalTitle(title);
+    setModalMessage(message);
+    setOnConfirmAction(onConfirm ? onConfirm : null);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setOnConfirmAction(null);
+  };
+
+  const handleModalConfirm = async () => {
+    if (onConfirmAction) {
+      await onConfirmAction();
+    }
+    closeModal();
+  };
+
+  // === HAPUS BOOKING DENGAN MODAL KONFIRMASI ===
+  const handleDelete = () => {
+  if (!selected) {
+    openModal('warning', 'Peringatan', 'Tidak ada booking yang dipilih.');
+    return;
+  }
+
+  openModal(
+    'warning',
+    'Konfirmasi Hapus Booking',
+    <>
+      Apakah Anda yakin ingin menghapus booking <strong>#{selected.booking_id}</strong> atas nama <strong>{selected.nama_lengkap}</strong>?
+      <br /><br />
+      <span className="text-sm text-gray-600">Tindakan ini tidak dapat dibatalkan.</span>
+    </>,
+    async () => {
+      try {
+        const res = await fetch(`/api/booking/${selected.booking_id}`, {
+          method: 'DELETE',
+        });
+
+        const json = await res.json();
+
+        if (res.ok && json.success) {
+          openModal('success', 'Berhasil!', 'Booking berhasil dihapus.');
+          setSelected(null);
+          await refetchBookings();
+        } else {
+          openModal('error', 'Gagal', json.error || 'Tidak dapat menghapus booking.');
+        }
+      } catch (error) {
+        openModal('error', 'Error', 'Terjadi kesalahan jaringan. Coba lagi.');
+      }
+    }
+  );
+};
+
+  // === EDIT & TAMBAH ===
   const handleEdit = () => {
     if (!selected) {
-      setModalType('warning');
-      setModalTitle('Tidak ada booking yang dipilih');
-      setModalOpen(true);
+      openModal('warning', 'Peringatan', 'Pilih booking terlebih dahulu untuk mengubah.');
       return;
     }
     router.push(`/owner/booking/edit/${selected.booking_id}`);
@@ -142,10 +167,6 @@ export default function OwnerBookingPage() {
     router.push('/owner/booking/new');
   };
 
-  const handleModalClose = () => {
-    setModalOpen(false);
-  };
-
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* SEARCH BAR */}
@@ -153,10 +174,10 @@ export default function OwnerBookingPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Cari booking..."
+            placeholder="Cari booking ID atau nama pelanggan..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 outline-none text-gray-700"
+            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 outline-none text-gray-700 transition"
           />
           <svg className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -164,53 +185,54 @@ export default function OwnerBookingPage() {
         </div>
       </div>
 
-      {/* GRID 1:2 */}
+      {/* GRID LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* DAFTAR BOOKING */}
-        <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
+        <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col overflow-hidden">
           <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
             <h2 className="text-lg font-bold">Daftar Booking</h2>
             {selected && (
               <button
                 onClick={handleUnselect}
-                className="text-xs bg-blue-500 hover:bg-blue-400 px-2 py-1 rounded transition-colors"
+                className="text-xs bg-blue-500 hover:bg-blue-400 px-3 py-1 rounded transition"
               >
-                Unselect
+                Batal Pilih
               </button>
             )}
           </div>
 
-          <div className="flex-1 divide-y divide-gray-100 overflow-y-auto max-h-[600px]">
+          {/* LIST */}
+          <div className="flex-1 overflow-y-auto max-h-[600px] divide-y divide-gray-100">
             {loading ? (
-              <div className="text-center py-8 text-gray-500">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-sm">Memuat data...</p>
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-blue-600 mx-auto"></div>
+                <p className="mt-3 text-gray-500">Memuat...</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-lg">?</span>
+              <div className="text-center py-12 text-gray-500">
+                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span className="text-2xl">?</span>
                 </div>
-                <p className="text-sm">Tidak ada data</p>
+                <p>Tidak ada data booking</p>
               </div>
             ) : (
               filtered.map((b) => (
                 <div
                   key={b.booking_id}
                   onClick={() => handleSelectBooking(b)}
-                  className={`p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-blue-50 ${
-                    selected?.booking_id === b.booking_id 
-                      ? 'bg-blue-100 border-l-4 border-blue-600 ring-2 ring-blue-200' 
+                  className={`p-4 flex items-center gap-4 cursor-pointer transition-all hover:bg-blue-50 ${
+                    selected?.booking_id === b.booking_id
+                      ? 'bg-blue-100 border-l-4 border-blue-600 ring-2 ring-blue-200'
                       : ''
                   }`}
                 >
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {getInitials(b.nama_lengkap)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-800 truncate text-sm">#{b.booking_id}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ml-1 ${
+                      <h3 className="font-semibold text-gray-800 text-sm">#{b.booking_id}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ${
                         b.status === 'confirmed' ? 'bg-green-500' :
                         b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
                       }`}>
@@ -219,9 +241,7 @@ export default function OwnerBookingPage() {
                     </div>
                     <p className="text-xs text-gray-600 truncate">{b.nama_lengkap}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(b.tanggal_booking).toLocaleDateString('id-ID', {
-                        day: 'numeric', month: 'numeric', year: 'numeric'
-                      })}
+                      {new Date(b.tanggal_booking).toLocaleDateString('id-ID')}
                     </p>
                   </div>
                 </div>
@@ -230,35 +250,33 @@ export default function OwnerBookingPage() {
           </div>
 
           {/* PAGINATION */}
-          <div className="p-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+          <div className="p-4 border-t bg-gray-50 flex items-center justify-between text-sm">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={!hasPrev || loading}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition ${
                 !hasPrev || loading
-                  ? 'bg-gray-100 text-gray-400 border border-gray-300 cursor-not-allowed'
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'
               }`}
             >
-              <ChevronLeft className="w-4 h-4" />
-              Prev
+              <ChevronLeft className="w-4 h-4" /> Prev
             </button>
 
-            <span className="text-xs text-gray-600">
-              <strong>{page}</strong>/<strong>{totalPages}</strong>
+            <span className="text-gray-600">
+              Halaman <strong>{page}</strong> dari <strong>{totalPages}</strong>
             </span>
 
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={!hasNext || loading}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition ${
                 !hasNext || loading
-                  ? 'bg-gray-100 text-gray-400 border border-gray-300 cursor-not-allowed'
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'
               }`}
             >
-              Next
-              <ChevronRight className="w-4 h-4" />
+              Next <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -267,59 +285,49 @@ export default function OwnerBookingPage() {
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           <div className="bg-blue-600 text-white p-5 flex items-center justify-between">
             <h2 className="text-xl font-bold">
-              {selected ? `Detail Booking #${selected.booking_id}` : 'Detail Data Booking'}
+              {selected ? `Detail Booking #${selected.booking_id}` : 'Detail Booking'}
             </h2>
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="success"
-                className="bg-green-600 hover:bg-green-700 text-white" 
-                onClick={handleAdd}
-              >
-                Tambah
+            <div className="flex gap-3">
+              <Button size="sm" variant="success" onClick={handleAdd}>
+                + Tambah
               </Button>
-              <Button 
-                size="sm" 
-                variant="secondary" 
-                disabled={!selected}
-                onClick={handleEdit}
-              >
+              <Button size="sm" variant="secondary" disabled={!selected} onClick={handleEdit}>
                 Ubah
               </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                disabled={!selected}
-                onClick={handleDelete}
-              >
+              <Button size="sm" variant="danger" disabled={!selected} onClick={handleDelete}>
                 Hapus
               </Button>
             </div>
           </div>
-          <div className="p-6">
+
+          <div className="p-6 min-h-[400px]">
             {selected ? (
               <BookingDetails booking={selected} />
             ) : (
-              <div className="text-center py-12 text-gray-500">
-                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center py-20 text-gray-500">
+                <div className="w-20 h-20 bg-gray-200 rounded-full mx-auto mb-5 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-600 mb-2">Tidak ada booking yang dipilih</h3>
-                <p className="text-sm">Pilih booking dari daftar untuk melihat detail</p>
+                <h3 className="text-lg font-medium mb-2">Belum ada booking dipilih</h3>
+                <p className="text-sm">Klik salah satu booking di daftar sebelah kiri</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* POPUP MODAL */}
+      {/* MODAL POPUP – Satu modal untuk semua keperluan */}
       <ModalPopup
         isOpen={modalOpen}
         type={modalType}
         title={modalTitle}
-        onClose={handleModalClose}
+        message={modalMessage}
+        onClose={closeModal}
+        onConfirm={onConfirmAction ? handleModalConfirm : undefined}
+        confirmText={onConfirmAction ? 'Ya, Hapus' : undefined}
+        cancelText={onConfirmAction ? 'Batal' : 'Tutup'}
       />
     </div>
   );

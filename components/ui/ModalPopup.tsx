@@ -1,6 +1,6 @@
 // components/ui/ModalPopup.tsx
 import { X } from 'lucide-react';
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 
 type ModalType = 'success' | 'warning' | 'error';
 
@@ -8,8 +8,11 @@ interface ModalPopupProps {
   isOpen: boolean;
   type: ModalType;
   title: string;
-  message?: string;
+  message?: string | React.ReactNode ;
   onClose: () => void;
+  onConfirm?: () => void;
+  confirmText?: string;
+  cancelText?: string;
   customButtons?: ReactNode; // Tambahkan prop customButtons
 }
 
