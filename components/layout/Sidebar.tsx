@@ -11,6 +11,7 @@ import {
   ShoppingCartIcon,
   DocumentChartBarIcon,
   XMarkIcon,
+  CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -79,6 +80,13 @@ export default function Sidebar({
       href: `${basePath}/laporan`, 
       icon: DocumentChartBarIcon,
       roles: ['manager'] // Hanya Manager
+    },
+    // MENU BARU — HANYA UNTUK OWNER
+    { 
+      name: 'Upload SIPS', 
+      href: `${basePath}/upload-sips`, 
+      icon: CloudArrowUpIcon,
+      roles: ['owner'] // Hanya owner yang boleh lihat!
     },
   ];
 
