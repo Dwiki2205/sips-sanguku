@@ -1,13 +1,17 @@
 // app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers'; // ← import langsung di sini
 import pool from '@/lib/db';
-import { verifyToken, getAuthToken } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const token = getAuthToken();
+    // JANGAN pakai getAuthToken() dari lib
+    const cookieStore = cookies();
+    const token = cookieStore.get('token')?.value;
+
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
