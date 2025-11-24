@@ -57,11 +57,17 @@ export async function GET(request: NextRequest) {
     const countResult = await query(countSql, countParams);
     const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
-    // === Tambahkan ORDER, LIMIT, OFFSET ===
+        // === Tambahkan ORDER, LIMIT, OFFSET ===
     sql += ` ORDER BY m.tanggal_daftar DESC`;
-    sql += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-    params.push(limit, offset);
+    
+    // GANTI DENGAN INI:
+    const limitParam = params.length + 1;
+    const offsetParam = params.length + 2;
+    sql += ` LIMIT $${limitParam}::integer OFFSET $${offsetParam}::integer`;
 
+    // Push sebagai number
+    params.push(limit);
+    params.push(offset);
     // === Eksekusi query utama ===
     const result = await query(sql, params);
 
