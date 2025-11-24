@@ -8,12 +8,12 @@ interface ModalPopupProps {
   isOpen: boolean;
   type: ModalType;
   title: string;
-  message?: string | React.ReactNode ;
+  message?: string | React.ReactNode;
   onClose: () => void;
-  onConfirm?: () => void;
+  onConfirm?: () => void;           // Akan dipanggil saat tombol konfirmasi diklik
   confirmText?: string;
   cancelText?: string;
-  customButtons?: ReactNode; // Tambahkan prop customButtons
+  confirmDisabled?: boolean;        // Untuk loading state
 }
 
 const iconMap = {
@@ -36,64 +36,84 @@ const iconMap = {
 
 const bgColorMap = {
   success: 'bg-green-100',
-  warning: 'bg-orange-100', 
+  warning: 'bg-orange-100',
   error: 'bg-red-100',
 };
 
-const buttonColorMap = {
-  success: 'bg-blue-600 hover:bg-blue-700',
-  warning: 'bg-orange-600 hover:bg-orange-700',
-  error: 'bg-red-600 hover:bg-red-700',
-};
-
-export default function ModalPopup({ 
-  isOpen, 
-  type, 
-  title, 
-  message, 
-  onClose, 
-  customButtons 
+export default function ModalPopup({
+  isOpen,
+  type,
+  title,
+  message,
+  onClose,
+  onConfirm,
+  confirmText,
+  cancelText,
+  confirmDisabled = false,
 }: ModalPopupProps) {
   if (!isOpen) return null;
+
+  const hasConfirm = !!onConfirm;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 animate-scale">
+        {/* Close button */}
         <div className="flex justify-end">
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex flex-col items-center mt-2 space-y-4">
+        <div className="flex flex-col items-center mt-2 space-y-6">
+          {/* Icon */}
           <div className={`rounded-full p-4 ${bgColorMap[type]}`}>
             {iconMap[type]}
           </div>
 
+          {/* Title & Message */}
           <div className="text-center space-y-3">
-            <h2 className="text-xl font-bold text-gray-800">
-              {title}
-            </h2>
-            {message && (
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {message}
-              </p>
-            )}
+            <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+            {message && <p className="text-gray-600 text-sm leading-relaxed">{message}</p>}
           </div>
 
-          {/* Tampilkan custom buttons jika ada, jika tidak tampilkan tombol default */}
-          {customButtons ? (
-            <div className="w-full">
-              {customButtons}
-            </div>
-          ) : (
-            <button
-              onClick={onClose}
-              className={`px-8 py-3 rounded-lg font-medium text-white transition ${buttonColorMap[type]}`}
-            >
-              OK
-            </button>
-          )}
+          {/* Buttons */}
+          <div className="flex gap-3 w-full justify-center">
+            {hasConfirm ? (
+              <>
+                {/* Cancel Button */}
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2.5 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                >
+                  {cancelText || 'Batal'}
+                </button>
+
+                {/* Confirm Button */}
+                <button
+                  onClick={onConfirm}
+                  disabled={confirmDisabled}
+                  className={`px-6 py-2.5 rounded-lg font-medium text-white transition ${
+                    confirmDisabled
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : type === 'warning' || type === 'error'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {confirmDisabled ? 'Memproses...' : confirmText || 'Ya'}
+                </button>
+              </>
+            ) : (
+              /* Only OK button (for success/info) */
+              <button
+                onClick={onClose}
+                className="px-8 py-3 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
+              >
+                OK
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

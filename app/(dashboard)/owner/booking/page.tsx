@@ -11,14 +11,14 @@ import ModalPopup from '@/components/ui/ModalPopup';
 export default function OwnerBookingPage() {
   const router = useRouter();
 
-  // === STATE MODAL (satu modal untuk semua keperluan) ===
+  // === MODAL STATE ===
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'warning' | 'error'>('success');
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState<string | React.ReactNode>('');
-  const [onConfirmAction, setOnConfirmAction] = useState<(() => Promise<void> | void) | null>(null);
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => Promise<void>) | null>(null);
 
-  // === STATE BOOKING ===
+  // === BOOKING STATE ===
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filtered, setFiltered] = useState<Booking[]>([]);
   const [selected, setSelected] = useState<Booking | null>(null);
@@ -26,6 +26,7 @@ export default function OwnerBookingPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false); // tambahan: loading saat hapus
   const limit = 7;
 
   // === FETCH DATA ===
@@ -47,21 +48,29 @@ export default function OwnerBookingPage() {
       }
     } catch (error) {
       console.error('Gagal mengambil data booking:', error);
+      openModal('error', 'Error', 'Gagal memuat data booking.');
     } finally {
       setLoading(false);
     }
   };
 
-  const refetchBookings = async () => {
+  // Refetch halaman saat ini (TIDAK reset ke page 1)
+  const refetchCurrentPage = async () => {
+    await fetchBookings();
+  };
+
+  // Refetch dari page 1 (hanya dipakai saat search atau pertama kali)
+  const refetchFromFirstPage = async () => {
     setPage(1);
     await fetchBookings();
   };
 
   useEffect(() => {
     fetchBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  // === FILTER BERDASARKAN SEARCH ===
+  // === SEARCH FILTER ===
   useEffect(() => {
     const lower = search.toLowerCase();
     const result = bookings.filter(b =>
@@ -70,9 +79,11 @@ export default function OwnerBookingPage() {
     );
     setFiltered(result);
 
+    // Jika item yang dipilih tidak ada di hasil filter → unselect
     if (selected && !result.find(b => b.booking_id === selected.booking_id)) {
       setSelected(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, bookings]);
 
   // === HELPER ===
@@ -96,12 +107,12 @@ export default function OwnerBookingPage() {
     type: 'success' | 'warning' | 'error',
     title: string,
     message: string | React.ReactNode,
-    onConfirm?: () => Promise<void> | void
+    onConfirm?: () => Promise<void>
   ) => {
     setModalType(type);
     setModalTitle(title);
     setModalMessage(message);
-    setOnConfirmAction(onConfirm ? onConfirm : null);
+    setOnConfirmAction(onConfirm || null);
     setModalOpen(true);
   };
 
@@ -117,42 +128,46 @@ export default function OwnerBookingPage() {
     closeModal();
   };
 
-  // === HAPUS BOOKING DENGAN MODAL KONFIRMASI ===
+  // === HAPUS BOOKING – VERSI AMAN 100% ===
   const handleDelete = () => {
-  if (!selected) {
-    openModal('warning', 'Peringatan', 'Tidak ada booking yang dipilih.');
-    return;
-  }
-
-  openModal(
-    'warning',
-    'Konfirmasi Hapus Booking',
-    <>
-      Apakah Anda yakin ingin menghapus booking <strong>#{selected.booking_id}</strong> atas nama <strong>{selected.nama_lengkap}</strong>?
-      <br /><br />
-      <span className="text-sm text-gray-600">Tindakan ini tidak dapat dibatalkan.</span>
-    </>,
-    async () => {
-      try {
-        const res = await fetch(`/api/booking/${selected.booking_id}`, {
-          method: 'DELETE',
-        });
-
-        const json = await res.json();
-
-        if (res.ok && json.success) {
-          openModal('success', 'Berhasil!', 'Booking berhasil dihapus.');
-          setSelected(null);
-          await refetchBookings();
-        } else {
-          openModal('error', 'Gagal', json.error || 'Tidak dapat menghapus booking.');
-        }
-      } catch (error) {
-        openModal('error', 'Error', 'Terjadi kesalahan jaringan. Coba lagi.');
-      }
+    if (!selected) {
+      openModal('warning', 'Peringatan', 'Tidak ada booking yang dipilih.');
+      return;
     }
-  );
-};
+
+    openModal(
+      'warning',
+      'Konfirmasi Hapus Booking',
+      <>
+        Apakah Anda yakin ingin menghapus booking <strong>#{selected.booking_id}</strong> atas nama <strong>{selected.nama_lengkap}</strong>?
+        <br /><br />
+        <span className="text-sm text-gray-600">Tindakan ini tidak dapat dibatalkan.</span>
+      </>,
+      async () => {
+        setDeleting(true);
+        try {
+          const res = await fetch(`/api/booking/${selected.booking_id}`, {
+            method: 'DELETE',
+          });
+
+          const json = await res.json();
+
+          if (res.ok && json.success) {
+            // HANYA JIKA SUKSES → baru update UI
+            openModal('success', 'Berhasil!', 'Booking berhasil dihapus.');
+            setSelected(null);
+            await refetchCurrentPage(); // refresh halaman saat ini saja
+          } else {
+            openModal('error', 'Gagal', json.error || 'Tidak dapat menghapus booking.');
+          }
+        } catch (error) {
+          openModal('error', 'Error', 'Terjadi kesalahan jaringan. Silakan coba lagi.');
+        } finally {
+          setDeleting(false);
+        }
+      }
+    );
+  };
 
   // === EDIT & TAMBAH ===
   const handleEdit = () => {
@@ -294,8 +309,13 @@ export default function OwnerBookingPage() {
               <Button size="sm" variant="secondary" disabled={!selected} onClick={handleEdit}>
                 Ubah
               </Button>
-              <Button size="sm" variant="danger" disabled={!selected} onClick={handleDelete}>
-                Hapus
+              <Button 
+                size="sm" 
+                variant="danger" 
+                disabled={!selected || deleting} 
+                onClick={handleDelete}
+              >
+                {deleting ? 'Menghapus...' : 'Hapus'}
               </Button>
             </div>
           </div>
@@ -318,7 +338,7 @@ export default function OwnerBookingPage() {
         </div>
       </div>
 
-      {/* MODAL POPUP – Satu modal untuk semua keperluan */}
+      {/* MODAL */}
       <ModalPopup
         isOpen={modalOpen}
         type={modalType}
@@ -326,8 +346,9 @@ export default function OwnerBookingPage() {
         message={modalMessage}
         onClose={closeModal}
         onConfirm={onConfirmAction ? handleModalConfirm : undefined}
-        confirmText={onConfirmAction ? 'Ya, Hapus' : undefined}
+        confirmText={onConfirmAction ? (deleting ? 'Menghapus...' : 'Ya, Hapus') : undefined}
         cancelText={onConfirmAction ? 'Batal' : 'Tutup'}
+        confirmDisabled={deleting}
       />
     </div>
   );

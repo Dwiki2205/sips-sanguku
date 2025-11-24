@@ -1,4 +1,3 @@
-// app/(dashboard)/owner/membership/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,14 +18,13 @@ export default function OwnerMembershipPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   
-  // State untuk modal
-  const [modal, setModal] = useState({
-    isOpen: false,
-    type: 'success' as 'success' | 'warning' | 'error',
-    title: '',
-    message: '',
-    onConfirm: null as (() => void) | null,
-  });
+  // === STATE MODAL YANG BARU (KONSISTEN DENGAN BOOKING PAGE) ===
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'warning' | 'error'>('success');
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState<string | React.ReactNode>('');
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => Promise<void>) | null>(null);
+  const [deleting, setDeleting] = useState(false); // loading saat hapus
 
   const limit = 6;
 
@@ -58,10 +56,10 @@ export default function OwnerMembershipPage() {
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      showModal('error', 'Gagal Memuat Data', 'Terjadi kesalahan saat memuat data membership');
+      openModal('error', 'Gagal Memuat Data', 'Terjadi kesalahan saat memuat data membership');
       setMemberships([]);
-        setFiltered([]);
-        setTotal(0);
+      setFiltered([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -75,15 +73,12 @@ export default function OwnerMembershipPage() {
   // === FUNGSI SELECT/UNSELECT ===
   const handleSelectMembership = (membership: Membership) => {
     if (selected?.membership_id === membership.membership_id) {
-      // Unselect jika membership yang sama diklik
       setSelected(null);
     } else {
-      // Select membership baru
       setSelected(membership);
     }
   };
 
-  // Fungsi untuk unselect secara eksplisit
   const handleUnselect = () => {
     setSelected(null);
   };
@@ -113,42 +108,47 @@ export default function OwnerMembershipPage() {
     }
   };
 
-  // === FUNGSI UNTUK MENAMPILKAN MODAL ===
-  const showModal = (
-    type: 'success' | 'warning' | 'error', 
-    title: string, 
-    message: string, 
-    onConfirm?: () => void
+  // === MODAL HANDLER BARU (OPEN & CLOSE) ===
+  const openModal = (
+    type: 'success' | 'warning' | 'error',
+    title: string,
+    message: string | React.ReactNode,
+    onConfirm?: () => Promise<void>
   ) => {
-    setModal({
-      isOpen: true,
-      type,
-      title,
-      message,
-      onConfirm: onConfirm || null,
-    });
+    setModalType(type);
+    setModalTitle(title);
+    setModalMessage(message);
+    setOnConfirmAction(onConfirm || null);
+    setModalOpen(true);
   };
 
   const closeModal = () => {
-    setModal({
-      isOpen: false,
-      type: 'success',
-      title: '',
-      message: '',
-      onConfirm: null,
-    });
+    setModalOpen(false);
+    setOnConfirmAction(null);
+    setDeleting(false);
   };
 
-  // === HAPUS MEMBERSHIP ===
+  const handleModalConfirm = async () => {
+    if (onConfirmAction) {
+      await onConfirmAction();
+    }
+    closeModal();
+  };
+
+  // === HAPUS MEMBERSHIP – 100% AMAN & BUTUH KONFIRMASI ===
   const handleDelete = async () => {
     if (!selected) return;
-    
-    // Tampilkan modal konfirmasi
-    showModal(
+
+    openModal(
       'warning',
-      'Konfirmasi Hapus',
-      `Yakin ingin menghapus membership #${selected.membership_id}? Tindakan ini tidak dapat dibatalkan.`,
+      'Konfirmasi Hapus Membership',
+      <>
+        Apakah Anda yakin ingin menghapus membership <strong>#{selected.membership_id}</strong> atas nama <strong>{selected.nama_lengkap}</strong>?
+        <br /><br />
+        <span className="text-sm text-gray-600">Tindakan ini tidak dapat dibatalkan.</span>
+      </>,
       async () => {
+        setDeleting(true);
         try {
           const res = await fetch(`/api/membership?id=${selected.membership_id}`, {
             method: 'DELETE',
@@ -160,45 +160,22 @@ export default function OwnerMembershipPage() {
 
           const result = await res.json();
           
-          if (res.ok) {
-            showModal('success', 'Berhasil', result.message || 'Membership berhasil dihapus!');
+          if (res.ok && result.success) {
+            openModal('success', 'Berhasil!', result.message || 'Membership berhasil dihapus!');
             setSelected(null);
-            fetchMemberships(); // refresh data
+            await fetchMemberships();
           } else {
-            showModal('error', 'Gagal', result.error || 'Gagal menghapus membership');
+            openModal('error', 'Gagal', result.error || 'Gagal menghapus membership');
           }
         } catch (error) {
           console.error('Delete error:', error);
-          showModal('error', 'Kesalahan Jaringan', 'Terjadi kesalahan jaringan saat menghapus membership');
+          openModal('error', 'Kesalahan Jaringan', 'Terjadi kesalahan jaringan saat menghapus membership');
+        } finally {
+          setDeleting(false);
         }
       }
     );
   };
-
-  // Custom buttons untuk modal konfirmasi
-  const confirmDeleteButtons = (
-    <div className="flex gap-3 w-full justify-center">
-      <Button
-        variant="outline"
-        onClick={closeModal}
-        className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-      >
-        Batal
-      </Button>
-      <Button
-        variant="danger"
-        onClick={() => {
-          if (modal.onConfirm) {
-            modal.onConfirm();
-          }
-          closeModal();
-        }}
-        className="px-6 py-2"
-      >
-        Ya, Hapus
-      </Button>
-    </div>
-  );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -276,12 +253,10 @@ export default function OwnerMembershipPage() {
                       : ''
                   }`}
                 >
-                  {/* AVATAR */}
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow">
                     {getInitials(m.nama_lengkap)}
                   </div>
 
-                  {/* INFO */}
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start gap-2">
                       <h3 className="font-semibold text-sm text-gray-800 truncate">
@@ -310,7 +285,6 @@ export default function OwnerMembershipPage() {
                     </p>
                   </div>
 
-                  {/* SELECTION INDICATOR */}
                   {selected?.membership_id === m.membership_id && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-blue-600 rounded-full"></div>
                   )}
@@ -355,14 +329,14 @@ export default function OwnerMembershipPage() {
                 variant="success"
                 className="bg-green-600 hover:bg-green-700 text-white"
                 onClick={handleAdd}
-                disabled={!!selected} // Disable ketika ada yang selected
+                disabled={!!selected}
               >
                 Tambah
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!selected} // Enable hanya ketika ada yang selected
+                disabled={!selected}
                 onClick={handleEdit}
               >
                 Ubah
@@ -370,10 +344,10 @@ export default function OwnerMembershipPage() {
               <Button 
                 size="sm" 
                 variant="danger" 
-                disabled={!selected} // Enable hanya ketika ada yang selected
+                disabled={!selected || deleting}
                 onClick={handleDelete}
               >
-                Hapus
+                {deleting ? 'Menghapus...' : 'Hapus'}
               </Button>
             </div>
           </div>
@@ -408,14 +382,17 @@ export default function OwnerMembershipPage() {
         </div>
       </div>
 
-      {/* MODAL POPUP */}
+      {/* MODAL POPUP – VERSI AMAN & KONSISTEN */}
       <ModalPopup
-        isOpen={modal.isOpen}
-        type={modal.type}
-        title={modal.title}
-        message={modal.message}
+        isOpen={modalOpen}
+        type={modalType}
+        title={modalTitle}
+        message={modalMessage}
         onClose={closeModal}
-        customButtons={modal.onConfirm ? confirmDeleteButtons : undefined}
+        onConfirm={onConfirmAction ? handleModalConfirm : undefined}
+        confirmText={deleting ? 'Menghapus...' : 'Ya, Hapus'}
+        cancelText="Batal"
+        confirmDisabled={deleting}
       />
     </div>
   );
