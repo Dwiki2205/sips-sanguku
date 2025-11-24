@@ -89,7 +89,7 @@ export default function ModalPopup({
                   {cancelText || 'Batal'}
                 </button>
 
-                // Di ModalPopup.tsx - pastikan button confirm TIDAK trigger otomatis
+                {/* // Di ModalPopup.tsx - pastikan button confirm TIDAK trigger otomatis */}
                 <button
                   onClick={onConfirm}
                   disabled={confirmDisabled}
