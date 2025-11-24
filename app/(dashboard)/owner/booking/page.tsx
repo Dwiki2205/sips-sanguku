@@ -128,12 +128,16 @@ export default function OwnerBookingPage() {
     closeModal();
   };
 
-  // === HAPUS BOOKING – VERSI AMAN 100% ===
+  
+  // === HAPUS BOOKING – VERSI DIPERBAIKI ===
   const handleDelete = () => {
     if (!selected) {
       openModal('warning', 'Peringatan', 'Tidak ada booking yang dipilih.');
       return;
     }
+
+    // RESET STATE DELETING SETIAP KALI MODAL DIBUKA
+    setDeleting(false);
 
     openModal(
       'warning',
@@ -153,10 +157,9 @@ export default function OwnerBookingPage() {
           const json = await res.json();
 
           if (res.ok && json.success) {
-            // HANYA JIKA SUKSES → baru update UI
             openModal('success', 'Berhasil!', 'Booking berhasil dihapus.');
             setSelected(null);
-            await refetchCurrentPage(); // refresh halaman saat ini saja
+            await refetchCurrentPage();
           } else {
             openModal('error', 'Gagal', json.error || 'Tidak dapat menghapus booking.');
           }

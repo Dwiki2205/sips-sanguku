@@ -89,7 +89,7 @@ export default function ModalPopup({
                   {cancelText || 'Batal'}
                 </button>
 
-                {/* Confirm Button */}
+                // Di ModalPopup.tsx - pastikan button confirm TIDAK trigger otomatis
                 <button
                   onClick={onConfirm}
                   disabled={confirmDisabled}
@@ -100,6 +100,7 @@ export default function ModalPopup({
                       ? 'bg-red-600 hover:bg-red-700'
                       : 'bg-blue-600 hover:bg-blue-700'
                   }`}
+                  type="button" // PASTIKAN ADA type="button" untuk prevent form submission
                 >
                   {confirmDisabled ? 'Memproses...' : confirmText || 'Ya'}
                 </button>
