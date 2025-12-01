@@ -1,0 +1,77 @@
+// app/api/dashboard/route.ts
+import { NextResponse } from 'next/server';
+import pool from '@/lib/db';
+
+export async function GET() {
+  try {
+    // Recent Bookings (5 latest)
+    const recentBookings = await pool.query(`
+      SELECT b.*, p.nama_lengkap
+      FROM booking b
+      JOIN pelanggan p ON b.pelanggan_id = p.pelanggan_id
+      ORDER BY b.created_at DESC
+      LIMIT 5
+    `);
+
+    // Expiring Memberships (within 30 days)
+    const expiringMemberships = await pool.query(`
+      SELECT m.*, p.nama_lengkap
+      FROM membership m
+      JOIN pelanggan p ON m.pelanggan_id = p.pelanggan_id
+      WHERE m.expired_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
+      ORDER BY m.expired_date ASC
+    `);
+
+    // Booking Stats This Month
+    const bookingStats = await pool.query(`
+      SELECT status, COUNT(*) as count
+      FROM booking
+      WHERE DATE_TRUNC('month', tanggal_booking) = DATE_TRUNC('month', CURRENT_DATE)
+      GROUP BY status
+    `);
+
+    // Booking Trend 6 Months
+    const bookingTrend = await pool.query(`
+      SELECT DATE_TRUNC('month', tanggal_booking) as month, COUNT(*) as count
+      FROM booking
+      WHERE tanggal_booking >= CURRENT_DATE - INTERVAL '6 months'
+      GROUP BY month
+      ORDER BY month
+    `);
+
+    // Membership Distribution
+    const membershipDistribution = await pool.query(`
+      SELECT tier_membership as tier, COUNT(*) as count
+      FROM membership
+      GROUP BY tier_membership
+    `);
+
+    // Revenue Per Month (3 months, assuming revenue from confirmed/completed bookings)
+    const revenuePerMonth = await pool.query(`
+      SELECT DATE_TRUNC('month', tanggal_booking) as month, SUM(total_biaya) as revenue
+      FROM booking
+      WHERE tanggal_booking >= CURRENT_DATE - INTERVAL '3 months'
+      AND status IN ('confirmed', 'completed')
+      GROUP BY month
+      ORDER BY month
+    `);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        recentBookings: recentBookings.rows,
+        expiringMemberships: expiringMemberships.rows,
+        bookingStats: bookingStats.rows,
+        bookingTrend: bookingTrend.rows.map(row => ({ month: row.month.toISOString().slice(0,7), count: parseInt(row.count) })),
+        membershipDistribution: membershipDistribution.rows.map(row => ({ tier: row.tier, count: parseInt(row.count) })),
+        revenuePerMonth: revenuePerMonth.rows.map(row => ({ month: row.month.toISOString().slice(0,7), revenue: parseFloat(row.revenue) })),
+      }
+    });
+  } catch (error) {
+    console.error('GET /api/dashboard error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch dashboard data' },
+      { status: 500 }
+    );
+  }
+}
