@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
+  HomeIcon,
   CalendarIcon,
   UserGroupIcon,
   ShoppingCartIcon,
@@ -58,6 +59,12 @@ export default function Sidebar({
   // Definisikan semua navigasi dengan permission role
   const allNavigation: NavigationItem[] = [
     { 
+      name: 'Dashboard', 
+      href: `${basePath}/dashboard`, 
+      icon: HomeIcon,
+      roles: ['owner', 'pegawai', 'pelanggan', 'manager'] // Semua role bisa akses dashboard
+    },
+    { 
       name: 'Membership', 
       href: `${basePath}/membership`, 
       icon: UserGroupIcon,
@@ -107,6 +114,9 @@ export default function Sidebar({
     await logout();
   };
 
+  // Cek apakah path aktif adalah dashboard
+  const isDashboardActive = pathname === dashboardPath || pathname === basePath;
+
   return (
     <>
       {/* ========== MOBILE SIDEBAR ========== */}
@@ -152,32 +162,42 @@ export default function Sidebar({
                 <Link
                   href={dashboardPath}
                   onClick={() => setOpen(false)}
-                  className="flex flex-shrink-0 items-center px-4"
+                  className="flex flex-shrink-0 items-center px-4 mb-4"
                 >
                   <h1 className={`text-xl font-bold ${SIDEBAR_COLORS.logo}`}>SIPS</h1>
+                  {!collapsed && (
+                    <span className="ml-2 text-sm text-blue-300">Sistem Informasi Pengelolaan Sagu</span>
+                  )}
                 </Link>
 
                 {/* Navigation */}
-                <nav className="mt-5 flex-1 space-y-1 px-2">
+                <nav className="mt-2 flex-1 space-y-1 px-2">
                   {navigation.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href || 
+                                    (item.name === 'Dashboard' && isDashboardActive);
+                    
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
                         onClick={() => setOpen(false)}
-                        className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                        className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-all ${
                           isActive
                             ? `${SIDEBAR_COLORS.active} ${SIDEBAR_COLORS.text}`
                             : `${SIDEBAR_COLORS.textMuted} hover:${SIDEBAR_COLORS.hover} hover:${SIDEBAR_COLORS.text}`
                         }`}
                       >
                         <item.icon
-                          className={`mr-4 h-6 w-6 flex-shrink-0 ${
+                          className={`mr-4 h-6 w-6 flex-shrink-0 transition-colors ${
                             isActive ? SIDEBAR_COLORS.iconActive : SIDEBAR_COLORS.icon
                           }`}
                         />
                         {item.name}
+                        {item.name === 'Dashboard' && isActive && (
+                          <span className="ml-auto text-xs bg-blue-500 px-2 py-1 rounded-full">
+                            Home
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
@@ -196,7 +216,7 @@ export default function Sidebar({
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="text-sm text-red-300 hover:text-red-100"
+                      className="text-sm text-red-300 hover:text-red-100 transition-colors"
                     >
                       Logout
                     </button>
@@ -218,31 +238,39 @@ export default function Sidebar({
           className={`flex flex-col flex-grow ${SIDEBAR_COLORS.background} border-r ${SIDEBAR_COLORS.border} overflow-y-auto`}
         >
           {/* Logo SIPS → ke Dashboard */}
-          <div className="flex items-center justify-between px-4 pt-5">
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between px-4'} pt-5`}>
             <Link
               href={dashboardPath}
               className={`font-bold text-white transition-all ${
                 collapsed ? 'w-0 opacity-0' : 'text-xl'
               }`}
-              title={collapsed ? 'SIPS - Dashboard' : undefined}
+              title={collapsed ? 'Dashboard' : undefined}
             >
-              SIPS
+              {!collapsed ? 'SIPS' : '🏠'}
             </Link>
           </div>
 
+          {!collapsed && (
+            <div className="px-4 mt-2 mb-4">
+              <p className="text-xs text-blue-300 truncate">Sistem Informasi Pengelolaan Sagu</p>
+            </div>
+          )}
+
           {/* Navigation */}
           <nav
-            className={`flex-1 px-2 pb-4 mt-5 space-y-1 ${collapsed ? 'px-3' : ''}`}
+            className={`flex-1 px-2 pb-4 mt-2 space-y-1 ${collapsed ? 'px-3' : ''}`}
           >
             {navigation.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || 
+                              (item.name === 'Dashboard' && isDashboardActive);
+              
               return (
                 <Link
                   key={item.name}
                   href={item.href}
                   className={`group flex items-center rounded-md transition-all ${
                     collapsed ? 'justify-center py-3' : 'px-2 py-2'
-                  } text-sm font-medium ${
+                  } text-sm font-medium relative ${
                     isActive
                       ? `${SIDEBAR_COLORS.active} ${SIDEBAR_COLORS.text}`
                       : `${SIDEBAR_COLORS.textMuted} hover:${SIDEBAR_COLORS.hover} hover:${SIDEBAR_COLORS.text}`
@@ -250,11 +278,29 @@ export default function Sidebar({
                   title={collapsed ? item.name : undefined}
                 >
                   <item.icon
-                    className={`h-6 w-6 flex-shrink-0 ${collapsed ? '' : 'mr-3'} ${
+                    className={`h-6 w-6 flex-shrink-0 transition-colors ${collapsed ? '' : 'mr-3'} ${
                       isActive ? SIDEBAR_COLORS.iconActive : SIDEBAR_COLORS.icon
                     }`}
                   />
-                  <span className={`${collapsed ? 'sr-only' : ''}`}>{item.name}</span>
+                  
+                  {/* Label hanya ditampilkan jika tidak collapsed */}
+                  {!collapsed && (
+                    <>
+                      <span>{item.name}</span>
+                      {item.name === 'Dashboard' && isActive && (
+                        <span className="ml-auto text-xs bg-blue-500 px-2 py-1 rounded-full">
+                          Active
+                        </span>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Tooltip untuk collapsed state */}
+                  {collapsed && isActive && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-blue-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
+                      {item.name}
+                    </div>
+                  )}
                 </Link>
               );
             })}
@@ -266,18 +312,20 @@ export default function Sidebar({
           >
             <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
               {!collapsed && (
-                <div>
-                  <div className={`text-sm font-medium ${SIDEBAR_COLORS.text}`}>
+                <div className="min-w-0">
+                  <div className={`text-sm font-medium ${SIDEBAR_COLORS.text} truncate`}>
                     {user?.nama || 'User'}
                   </div>
-                  <div className={`text-xs ${SIDEBAR_COLORS.textMuted} capitalize`}>
+                  <div className={`text-xs ${SIDEBAR_COLORS.textMuted} capitalize truncate`}>
                     {user?.role_name || 'Role'}
                   </div>
                 </div>
               )}
               <button
                 onClick={handleLogout}
-                className="text-red-300 hover:text-red-100"
+                className={`text-red-300 hover:text-red-100 transition-colors ${
+                  collapsed ? 'p-1' : ''
+                }`}
                 title={collapsed ? 'Logout' : undefined}
               >
                 <svg

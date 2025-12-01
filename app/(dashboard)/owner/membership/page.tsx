@@ -10,6 +10,8 @@ import ModalPopup from '@/components/ui/ModalPopup';
 
 export default function OwnerMembershipPage() {
   const router = useRouter();
+  
+  // === STATE DATA ===
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [filtered, setFiltered] = useState<Membership[]>([]);
   const [selected, setSelected] = useState<Membership | null>(null);
@@ -18,17 +20,21 @@ export default function OwnerMembershipPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   
-  // === STATE MODAL YANG BARU (KONSISTEN DENGAN BOOKING PAGE) ===
+  // === STATE MODAL ===
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'warning' | 'error'>('success');
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState<string | React.ReactNode>('');
   const [onConfirmAction, setOnConfirmAction] = useState<(() => Promise<void>) | null>(null);
-  const [deleting, setDeleting] = useState(false); // loading saat hapus
+  
+  // === STATE DELETE ===
+  const [deleting, setDeleting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const limit = 6;
 
-  // === FETCH DATA DENGAN PAGINATION & SEARCH ===
+  // === FETCH DATA ===
   const fetchMemberships = async () => {
     setLoading(true);
     try {
@@ -45,18 +51,14 @@ export default function OwnerMembershipPage() {
         setMemberships(json.data);
         setFiltered(json.data);
         setTotal(json.pagination?.total || 0);
-        
-        // Reset selected ketika data berubah
-        setSelected(null);
       } else {
-        console.error('Invalid response:', json);
         setMemberships([]);
         setFiltered([]);
         setTotal(0);
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      openModal('error', 'Gagal Memuat Data', 'Terjadi kesalahan saat memuat data membership');
+      showErrorModal('Terjadi kesalahan saat memuat data membership');
       setMemberships([]);
       setFiltered([]);
       setTotal(0);
@@ -65,12 +67,11 @@ export default function OwnerMembershipPage() {
     }
   };
 
-  // === EFFECT: Reload saat page/search berubah ===
   useEffect(() => {
     fetchMemberships();
   }, [page, search]);
 
-  // === FUNGSI SELECT/UNSELECT ===
+  // === HELPER FUNCTIONS ===
   const handleSelectMembership = (membership: Membership) => {
     if (selected?.membership_id === membership.membership_id) {
       setSelected(null);
@@ -83,8 +84,8 @@ export default function OwnerMembershipPage() {
     setSelected(null);
   };
 
-  // === UTILS ===
   const getInitials = (name: string) => {
+    if (!name) return '??';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -97,28 +98,24 @@ export default function OwnerMembershipPage() {
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
 
-  // === HANDLE ACTIONS ===
-  const handleAdd = () => {
-    router.push('/owner/membership/new');
+  // === MODAL FUNCTIONS ===
+  const showErrorModal = (message: string) => {
+    setModalType('error');
+    setModalTitle('Error');
+    setModalMessage(message);
+    setOnConfirmAction(null);
+    setModalOpen(true);
   };
 
-  const handleEdit = () => {
-    if (selected) {
-      router.push(`/owner/membership/edit/${selected.membership_id}`);
-    }
-  };
-
-  // === MODAL HANDLER BARU (OPEN & CLOSE) ===
-  const openModal = (
-    type: 'success' | 'warning' | 'error',
-    title: string,
-    message: string | React.ReactNode,
-    onConfirm?: () => Promise<void>
+  const showWarningModal = (
+    title: string, 
+    message: string | React.ReactNode, 
+    onConfirm: () => Promise<void>
   ) => {
-    setModalType(type);
+    setModalType('warning');
     setModalTitle(title);
     setModalMessage(message);
-    setOnConfirmAction(onConfirm || null);
+    setOnConfirmAction(() => onConfirm);
     setModalOpen(true);
   };
 
@@ -128,6 +125,11 @@ export default function OwnerMembershipPage() {
     setDeleting(false);
   };
 
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSuccessMessage('');
+  };
+
   const handleModalConfirm = async () => {
     if (onConfirmAction) {
       await onConfirmAction();
@@ -135,12 +137,15 @@ export default function OwnerMembershipPage() {
     closeModal();
   };
 
-  // === HAPUS MEMBERSHIP – 100% AMAN & BUTUH KONFIRMASI ===
-  const handleDelete = async () => {
-    if (!selected) return;
+  // === HANDLE DELETE - FLOW YANG BENAR ===
+  const handleDelete = () => {
+    if (!selected) {
+      showWarningModal('Peringatan', 'Tidak ada membership yang dipilih.', async () => {});
+      return;
+    }
 
-    openModal(
-      'warning',
+    // Tampilkan modal konfirmasi
+    showWarningModal(
       'Konfirmasi Hapus Membership',
       <>
         Apakah Anda yakin ingin menghapus membership <strong>#{selected.membership_id}</strong> atas nama <strong>{selected.nama_lengkap}</strong>?
@@ -148,33 +153,48 @@ export default function OwnerMembershipPage() {
         <span className="text-sm text-gray-600">Tindakan ini tidak dapat dibatalkan.</span>
       </>,
       async () => {
+        // Fungsi yang dijalankan saat user klik "Ya, Hapus"
         setDeleting(true);
+        
         try {
-          const res = await fetch(`/api/membership?id=${selected.membership_id}`, {
+          const res = await fetch(`/api/membership/${selected.membership_id}`, {
             method: 'DELETE',
-            headers: { 
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json'
-            },
           });
 
           const result = await res.json();
           
           if (res.ok && result.success) {
-            openModal('success', 'Berhasil!', result.message || 'Membership berhasil dihapus!');
+            // Tampilkan modal sukses terpisah
+            setSuccessMessage('Membership berhasil dihapus!');
+            setShowSuccessModal(true);
+            
+            // Reset dan refresh data
             setSelected(null);
             await fetchMemberships();
           } else {
-            openModal('error', 'Gagal', result.error || 'Gagal menghapus membership');
+            showErrorModal(result.error || 'Gagal menghapus membership');
           }
         } catch (error) {
           console.error('Delete error:', error);
-          openModal('error', 'Kesalahan Jaringan', 'Terjadi kesalahan jaringan saat menghapus membership');
+          showErrorModal('Terjadi kesalahan jaringan. Silakan coba lagi.');
         } finally {
           setDeleting(false);
         }
       }
     );
+  };
+
+  // === HANDLE ACTIONS ===
+  const handleAdd = () => {
+    router.push('/owner/membership/new');
+  };
+
+  const handleEdit = () => {
+    if (selected) {
+      router.push(`/owner/membership/edit/${selected.membership_id}`);
+    } else {
+      showWarningModal('Peringatan', 'Pilih membership terlebih dahulu untuk mengubah.', async () => {});
+    }
   };
 
   return (
@@ -226,7 +246,7 @@ export default function OwnerMembershipPage() {
                 className="text-xs bg-blue-500 hover:bg-blue-400 px-2 py-1 rounded transition-colors"
                 title="Unselect membership"
               >
-                Unselect
+                Batal Pilih
               </button>
             )}
           </div>
@@ -275,14 +295,18 @@ export default function OwnerMembershipPage() {
                       </span>
                     </div>
                     <p className="text-sm font-medium text-gray-700 truncate">{m.nama_lengkap}</p>
-                    <p className="text-xs text-gray-500">
-                      Exp:{' '}
-                      {new Date(m.expired_date).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        m.status_keaktifan === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {m.status_keaktifan === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                      </span>
+                      <p className="text-xs text-gray-500">
+                        Exp: {new Date(m.expired_date).toLocaleDateString('id-ID')}
+                      </p>
+                    </div>
                   </div>
 
                   {selected?.membership_id === m.membership_id && (
@@ -300,6 +324,7 @@ export default function OwnerMembershipPage() {
               variant="outline"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={!hasPrev || loading}
+              className="flex items-center gap-1"
             >
               <ChevronLeft className="w-4 h-4" /> Prev
             </Button>
@@ -311,6 +336,7 @@ export default function OwnerMembershipPage() {
               variant="outline"
               onClick={() => setPage((p) => p + 1)}
               disabled={!hasNext || loading}
+              className="flex items-center gap-1"
             >
               Next <ChevronRight className="w-4 h-4" />
             </Button>
@@ -327,11 +353,9 @@ export default function OwnerMembershipPage() {
               <Button
                 size="sm"
                 variant="success"
-                className="bg-green-600 hover:bg-green-700 text-white"
                 onClick={handleAdd}
-                disabled={!!selected}
               >
-                Tambah
+                + Tambah
               </Button>
               <Button
                 size="sm"
@@ -382,7 +406,7 @@ export default function OwnerMembershipPage() {
         </div>
       </div>
 
-      {/* MODAL POPUP – VERSI AMAN & KONSISTEN */}
+      {/* MODAL KONFIRMASI DELETE */}
       <ModalPopup
         isOpen={modalOpen}
         type={modalType}
@@ -393,6 +417,16 @@ export default function OwnerMembershipPage() {
         confirmText={deleting ? 'Menghapus...' : 'Ya, Hapus'}
         cancelText="Batal"
         confirmDisabled={deleting}
+      />
+
+      {/* MODAL SUKSES SETELAH DELETE */}
+      <ModalPopup
+        isOpen={showSuccessModal}
+        type="success"
+        title="Berhasil!"
+        message={successMessage}
+        onClose={closeSuccessModal}
+        cancelText="Tutup"
       />
     </div>
   );
