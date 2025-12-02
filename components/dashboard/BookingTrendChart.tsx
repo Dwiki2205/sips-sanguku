@@ -53,7 +53,7 @@ export default function BookingTrendChart({ data }: BookingTrendChartProps) {
             tickMargin={16}
             tick={{ fontSize: 13, fill: '#6b7280' }}
             tickFormatter={(value) => 
-              new Date(value).toLocaleString('id-ID', { month: 'short', year: '2-digit' })
+              new Date(`${value}-01`).toLocaleString('id-ID', { month: 'short', year: '2-digit' })
             }
             interval="preserveStartEnd" // Pastikan label pertama & terakhir selalu muncul
           />
@@ -79,7 +79,7 @@ export default function BookingTrendChart({ data }: BookingTrendChartProps) {
             labelStyle={{ color: '#1f2937', fontWeight: 'bold', marginBottom: '8px' }}
             formatter={(value: number) => [`${value} booking`, 'Jumlah']}
             labelFormatter={(label) => 
-              new Date(label).toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+              new Date(`${label}-01`).toLocaleString('id-ID', { month: 'long', year: 'numeric' })
             }
           />
 
@@ -129,7 +129,7 @@ export default function BookingTrendChart({ data }: BookingTrendChartProps) {
             <span className="font-bold text-red-600">
               {maxDataPoint?.count} booking
             </span>{' '}
-            ({new Date(maxDataPoint?.month || '').toLocaleString('id-ID', { month: 'long', year: 'numeric' })})
+            ({new Date(`${maxDataPoint?.month || ''}-01`).toLocaleString('id-ID', { month: 'long', year: 'numeric' })})
           </div>
         </div>
       )}

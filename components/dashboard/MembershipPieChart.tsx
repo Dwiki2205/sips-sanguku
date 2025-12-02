@@ -1,23 +1,36 @@
 // components/dashboard/MembershipPieChart.tsx
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const COLORS = ['#94a3b8', '#facc15', '#c084fc']; // Silver, Gold, Platinum - lebih soft & premium
+const COLORS = {
+  silver: '#94a3b8',
+  gold: '#facc15',
+  platinum: '#c084fc'
+};
 
 interface MembershipPieChartProps {
   data: { tier: string; count: number }[];
 }
 
 export default function MembershipPieChart({ data }: MembershipPieChartProps) {
-  const total = data.reduce((sum, item) => sum + item.count, 0);
+  // Pastikan 3 tier selalu muncul
+  const tiers = ["Silver", "Gold", "Platinum"];
+
+  const normalizedData = tiers.map(tier => {
+    const found = data.find(d => d.tier?.toLowerCase() === tier.toLowerCase());
+    return {
+      tier,
+      count: found ? found.count : 0
+    };
+  });
+
+  const total = normalizedData.reduce((sum, item) => sum + item.count, 0);
 
   const customLabel = (props: any) => {
     const { value, percent, cx, cy, midAngle, innerRadius, outerRadius } = props;
-    const percentage = ((percent ?? 0) * 100).toFixed(1);
-    const count = value || 0;
 
-    // Hanya tampilkan label jika slice cukup besar (>5%)
     if ((percent ?? 0) < 0.05) return null;
 
+    const percentage = ((percent ?? 0) * 100).toFixed(1);
     const radius = innerRadius + (outerRadius - innerRadius) * 0.58;
     const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
     const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
@@ -26,26 +39,26 @@ export default function MembershipPieChart({ data }: MembershipPieChartProps) {
       <text
         x={x}
         y={y}
-        fill="white"
+        fill="#000"
         textAnchor="middle"
         dominantBaseline="central"
         fontSize="14px"
         fontWeight="bold"
         className="drop-shadow-lg"
       >
-        {count} ({percentage}%)
+        {value} ({percentage}%)
       </text>
     );
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-      <h3 className="text-xl font-bold text-gray-800 mb-5">Distribusi Tier Membership</h3>
+      <h3 className="text-xl font-bold text-gray-800 mb-5">Distribusi Tier Membership (Active Only)</h3>
 
       <ResponsiveContainer width="100%" height={340}>
         <PieChart margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
           <Pie
-            data={data}
+            data={normalizedData}
             dataKey="count"
             nameKey="tier"
             cx="50%"
@@ -59,8 +72,19 @@ export default function MembershipPieChart({ data }: MembershipPieChartProps) {
             labelLine={false}
             label={customLabel}
           >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#fff" strokeWidth={3} />
+            {normalizedData.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={
+                  entry.tier.toLowerCase() === "silver"
+                    ? COLORS.silver
+                    : entry.tier.toLowerCase() === "gold"
+                    ? COLORS.gold
+                    : COLORS.platinum
+                }
+                stroke="#fff"
+                strokeWidth={3}
+              />
             ))}
           </Pie>
 
@@ -84,7 +108,7 @@ export default function MembershipPieChart({ data }: MembershipPieChartProps) {
             fontSize="14px"
             fill="#64748b"
           >
-            Total Member
+            Active Members
           </text>
 
           <Tooltip
@@ -98,7 +122,7 @@ export default function MembershipPieChart({ data }: MembershipPieChartProps) {
             }}
             labelStyle={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '6px' }}
             formatter={(value: number, name: string) => [
-              `${value} member (${((value / total) * 100).toFixed(1)}%)`,
+              `${value} member (${total === 0 ? "0" : ((value / total) * 100).toFixed(1)}%)`,
               name
             ]}
           />

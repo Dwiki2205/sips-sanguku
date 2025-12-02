@@ -1,6 +1,5 @@
 // components/dashboard/ExpiringMembershipsTable.tsx
-import { useState, useEffect } from 'react';
-import { CSVLink } from 'react-csv';
+import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ExpiringMembershipsTableProps {
@@ -8,22 +7,16 @@ interface ExpiringMembershipsTableProps {
 }
 
 export default function ExpiringMembershipsTable({ memberships }: ExpiringMembershipsTableProps) {
-  const [csvData, setCsvData] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 5;
 
-  useEffect(() => {
-    setCsvData(memberships.map(m => ({
-      ID: m.membership_id,
-      Nama: m.nama_lengkap,
-      Tier: m.tier_membership,
-      Expired: m.expired_date,
-      Status: m.status_keaktifan
-    })));
-  }, [memberships]);
+  // Sort memberships by expired_date ascending (soonest expiring first)
+  const sortedMemberships = [...memberships].sort((a, b) => 
+    new Date(a.expired_date).getTime() - new Date(b.expired_date).getTime()
+  );
 
-  const totalPages = Math.ceil(memberships.length / itemsPerPage);
-  const paginatedMemberships = memberships.slice(
+  const totalPages = Math.ceil(sortedMemberships.length / itemsPerPage);
+  const paginatedMemberships = sortedMemberships.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -32,9 +25,6 @@ export default function ExpiringMembershipsTable({ memberships }: ExpiringMember
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
       <div className="px-6 py-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white flex justify-between items-center">
         <h3 className="text-lg font-semibold">Membership Akan Expired</h3>
-        <CSVLink data={csvData} filename="expiring-memberships.csv">
-          <button className="bg-white text-purple-600 px-3 py-1 rounded-md text-sm font-medium hover:bg-purple-50 transition">Export CSV</button>
-        </CSVLink>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left text-gray-700 divide-y divide-gray-200">
