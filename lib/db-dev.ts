@@ -46,56 +46,56 @@
 // // Inisialisasi tabel + data default
 // async function initializeDatabase(database: Database): Promise<void> {
 //   const initSQL = `
-//     CREATE TABLE IF NOT EXISTS role (
-//       role_id TEXT PRIMARY KEY,
-//       role_name TEXT NOT NULL,
-//       permissions TEXT,
-//       deskripsi TEXT
-//     );
+    // CREATE TABLE IF NOT EXISTS role (
+    //   role_id TEXT PRIMARY KEY,
+    //   role_name TEXT NOT NULL,
+    //   permissions TEXT,
+    //   deskripsi TEXT
+    // );
 
-//     CREATE TABLE IF NOT EXISTS pengguna (
-//       pengguna_id TEXT PRIMARY KEY,
-//       nama TEXT NOT NULL,
-//       username TEXT UNIQUE NOT NULL,
-//       password TEXT NOT NULL,
-//       email TEXT,
-//       telepon TEXT,
-//       tanggal_bergabung DATETIME DEFAULT CURRENT_TIMESTAMP,
-//       role_id TEXT REFERENCES role(role_id)
-//     );
+    // CREATE TABLE IF NOT EXISTS pengguna (
+    //   pengguna_id TEXT PRIMARY KEY,
+    //   nama TEXT NOT NULL,
+    //   username TEXT UNIQUE NOT NULL,
+    //   password TEXT NOT NULL,
+    //   email TEXT,
+    //   telepon TEXT,
+    //   tanggal_bergabung DATETIME DEFAULT CURRENT_TIMESTAMP,
+    //   role_id TEXT REFERENCES role(role_id)
+    // );
 
-//     CREATE TABLE IF NOT EXISTS pelanggan (
-//       pelanggan_id TEXT PRIMARY KEY,
-//       nama_lengkap TEXT NOT NULL,
-//       username TEXT UNIQUE NOT NULL,
-//       password TEXT NOT NULL,
-//       email TEXT,
-//       telepon TEXT,
-//       alamat TEXT,
-//       tanggal_registrasi DATETIME DEFAULT CURRENT_TIMESTAMP
-//     );
+    // CREATE TABLE IF NOT EXISTS pelanggan (
+    //   pelanggan_id TEXT PRIMARY KEY,
+    //   nama_lengkap TEXT NOT NULL,
+    //   username TEXT UNIQUE NOT NULL,
+    //   password TEXT NOT NULL,
+    //   email TEXT,
+    //   telepon TEXT,
+    //   alamat TEXT,
+    //   tanggal_registrasi DATETIME DEFAULT CURRENT_TIMESTAMP
+    // );
 
-//     CREATE TABLE IF NOT EXISTS booking (
-//       booking_id TEXT PRIMARY KEY,
-//       pelanggan_id TEXT REFERENCES pelanggan(pelanggan_id),
-//       tanggal_booking DATE NOT NULL,
-//       jam_mulai TIME NOT NULL,
-//       jam_selesai TIME NOT NULL,
-//       status TEXT DEFAULT 'pending',
-//       total_biaya REAL NOT NULL,
-//       metode_pembayaran TEXT,
-//       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-//       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-//     );
+    // CREATE TABLE IF NOT EXISTS booking (
+    //   booking_id TEXT PRIMARY KEY,
+    //   pelanggan_id TEXT REFERENCES pelanggan(pelanggan_id),
+    //   tanggal_booking DATE NOT NULL,
+    //   jam_mulai TIME NOT NULL,
+    //   jam_selesai TIME NOT NULL,
+    //   status TEXT DEFAULT 'pending',
+    //   total_biaya REAL NOT NULL,
+    //   metode_pembayaran TEXT,
+    //   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    //   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    // );
 
-//     CREATE TABLE IF NOT EXISTS membership (
-//       membership_id TEXT PRIMARY KEY,
-//       pelanggan_id TEXT REFERENCES pelanggan(pelanggan_id),
-//       tanggal_daftar DATE NOT NULL,
-//       status_keaktifan TEXT DEFAULT 'active',
-//       tier_membership TEXT DEFAULT 'Silver',
-//       expired_date DATE NOT NULL
-//     );
+    // CREATE TABLE IF NOT EXISTS membership (
+    //   membership_id TEXT PRIMARY KEY,
+    //   pelanggan_id TEXT REFERENCES pelanggan(pelanggan_id),
+    //   tanggal_daftar DATE NOT NULL,
+    //   status_keaktifan TEXT DEFAULT 'active',
+    //   tier_membership TEXT DEFAULT 'Silver',
+    //   expired_date DATE NOT NULL
+    // );
 //   `;
 
 //   const defaultDataSQL = `
