@@ -2,16 +2,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Upload, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import ModalPopup from '@/components/ui/ModalPopup';
 
-interface UploadHistoryItem {
-  id: string;
+interface UploadHistory {
+  id: number;
   filename: string;
-  uploadTime: string; // Format: YYYY-MM-DD HH:MM:SS
-  status: 'success' | 'error';
-  message?: string;
+  upload_time: string;
+  status: string;
+  records_imported: number;
+  message: string;
 }
 
 export default function UploadSIPSPage() {
@@ -29,29 +30,28 @@ export default function UploadSIPSPage() {
   });
 
   // Riwayat upload state
-  const [history, setHistory] = useState<UploadHistoryItem[]>([]);
+  const [history, setHistory] = useState<UploadHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
-  // Fetch riwayat upload saat komponen mount
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await fetch('/api/upload-sips-history');
-        const json = await res.json();
-        if (res.ok && json.success) {
-          // Filter hanya yang berhasil (status 'success')
-          const successfulUploads = json.data.filter((item: UploadHistoryItem) => item.status === 'success');
-          setHistory(successfulUploads);
-        } else {
-          console.error('Gagal fetch riwayat:', json.error);
-        }
-      } catch (err) {
-        console.error('Error fetch riwayat:', err);
-      } finally {
-        setLoadingHistory(false);
+  // Fetch riwayat upload
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch('/api/upload-sips');
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data);
+      } else {
+        console.error('Gagal fetch riwayat');
       }
-    };
+    } catch (err) {
+      console.error('Error fetch riwayat:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
+  useEffect(() => {
     fetchHistory();
   }, []);
 
@@ -104,13 +104,8 @@ export default function UploadSIPSPage() {
           message: `File <strong>${file.name}</strong> berhasil di-upload dan data sudah masuk ke database Neon.\n\nFile juga akan dikirim otomatis ke CRM malam ini pukul 23:00 WIB.`,
         });
 
-        // Refresh riwayat setelah upload berhasil
-        const historyRes = await fetch('/api/upload-sips-history');
-        const historyJson = await historyRes.json();
-        if (historyRes.ok && historyJson.success) {
-          const successfulUploads = historyJson.data.filter((item: UploadHistoryItem) => item.status === 'success');
-          setHistory(successfulUploads);
-        }
+        // Refetch riwayat setelah sukses
+        await fetchHistory();
 
         // Reset form
         setFile(null);
@@ -251,45 +246,50 @@ export default function UploadSIPSPage() {
               )}
             </div>
 
+            <div className="mt-8 text-sm text-gray-500 text-center">
+              Upload otomatis terjadwal: <strong>Setiap hari pukul 23:00 WIB</strong>
+            </div>
+
             {/* Tabel Riwayat Upload */}
             <div className="mt-12">
-              <h2 className="text-xl font-bold mb-4">Riwayat Upload Berhasil</h2>
+              <h2 className="text-xl font-bold flex items-center gap-3 mb-4">
+                <Clock className="w-6 h-6 text-blue-600" />
+                Riwayat Upload
+              </h2>
               {loadingHistory ? (
-                <p className="text-gray-600">Memuat riwayat...</p>
+                <p className="text-center text-gray-500">Memuat riwayat...</p>
               ) : history.length === 0 ? (
-                <p className="text-gray-600">Belum ada riwayat upload berhasil.</p>
+                <p className="text-center text-gray-500">Belum ada riwayat upload.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="py-3 px-4 text-left font-semibold text-gray-700">Nama File</th>
-                        <th className="py-3 px-4 text-left font-semibold text-gray-700">Waktu Upload</th>
-                        <th className="py-3 px-4 text-left font-semibold text-gray-700">Status</th>
-                        <th className="py-3 px-4 text-left font-semibold text-gray-700">Pesan</th>
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama File</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Upload</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Record</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesan</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-200">
                       {history.map((item) => (
-                        <tr key={item.id} className="border-t">
-                          <td className="py-3 px-4">{item.filename}</td>
-                          <td className="py-3 px-4">{item.uploadTime}</td>
-                          <td className="py-3 px-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Berhasil
+                        <tr key={item.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.filename}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(item.upload_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {item.status.toUpperCase()}
                             </span>
                           </td>
-                          <td className="py-3 px-4">{item.message || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.records_imported}</td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{item.message}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-            </div>
-
-            <div className="mt-8 text-sm text-gray-500 text-center">
-              Upload otomatis terjadwal: <strong>Setiap hari pukul 23:00 WIB</strong>
             </div>
           </div>
         </div>

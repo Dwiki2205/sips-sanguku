@@ -8,22 +8,41 @@ const generateRandomId = () => {
   return String(Math.floor(Math.random() * 1000)).padStart(3, '0');
 };
 
+// GET: Fetch riwayat upload
+export async function GET() {
+  let client;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `SELECT id, filename, upload_time, status, records_imported, message
+       FROM upload_history
+       ORDER BY upload_time DESC
+       LIMIT 50` // Batasi 50 terbaru
+    );
+    return Response.json(result.rows);
+  } catch (error: any) {
+    console.error('Fetch history error:', error);
+    return Response.json({ error: 'Gagal fetch riwayat' }, { status: 500 });
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export async function POST(req: NextRequest) {
+  let client;
+  let file: File | null = null;
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    file = formData.get('file') as File;
 
     if (!file) {
-      return Response.json({ error: 'File tidak ditemukan' }, { status: 400 });
+      throw new Error('File tidak ditemukan');
     }
 
     // Validasi nama file (opsional, tetap bagus)
     const validName = /^sips_pelanggan_\d{8}_\d{4}\.csv$/.test(file.name);
     if (!validName) {
-      return Response.json(
-        { error: 'Nama file tidak valid. Harus: sips_pelanggan_YYYYMMDD_HHMM.csv' },
-        { status: 400 }
-      );
+      throw new Error('Nama file tidak valid. Harus: sips_pelanggan_YYYYMMDD_HHMM.csv');
     }
 
     // Langsung baca isi CSV tanpa simpan ke disk
@@ -31,7 +50,15 @@ export async function POST(req: NextRequest) {
     const csvText = buffer.toString('utf-8');
 
     // LANGSUNG IMPORT KE DATABASE NEON
-    await importCsvToNeonDatabase(csvText, file.name);
+    const recordsCount = await importCsvToNeonDatabase(csvText, file.name);
+
+    // Simpan ke history setelah sukses
+    client = await pool.connect();
+    await client.query(
+      `INSERT INTO upload_history (filename, status, records_imported, message)
+       VALUES ($1, $2, $3, $4)`,
+      [file.name, 'success', recordsCount, `File ${file.name} berhasil di-import dengan ${recordsCount} records.`]
+    );
 
     return Response.json({
       success: true,
@@ -39,11 +66,28 @@ export async function POST(req: NextRequest) {
       info: 'File tidak disimpan di server (sesuai permintaan). Cron SFTP akan ambil dari database.',
     });
   } catch (error: any) {
+    // Simpan ke history jika gagal (opsional, tapi bagus untuk log)
+    const filename = file ? file.name : 'unknown';
+    try {
+      if (!client) {
+        client = await pool.connect();
+      }
+      await client.query(
+        `INSERT INTO upload_history (filename, status, records_imported, message)
+         VALUES ($1, $2, $3, $4)`,
+        [filename, 'failed', 0, error.message || 'Gagal upload & import']
+      );
+    } catch (logError) {
+      console.error('Gagal simpan history error:', logError);
+    }
+
     console.error('Upload & import error:', error);
     return Response.json(
       { error: error.message || 'Gagal upload & import' },
       { status: 500 }
     );
+  } finally {
+    if (client) client.release();
   }
 }
 
@@ -153,6 +197,7 @@ async function importCsvToNeonDatabase(csvContent: string, filename: string) {
 
     await client.query('COMMIT');
     console.log(`Import ${records.length} data selesai dari ${filename}`);
+    return records.length; // Kembalikan jumlah records untuk history
   } catch (err: any) {
     if (client) await client.query('ROLLBACK');
     console.error('Import gagal:', err.message);
