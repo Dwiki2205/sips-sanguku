@@ -1,3 +1,4 @@
+// app/(dashboard)/customer/booking/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -598,15 +599,15 @@ export default function BookingPelangganPage() {
     <>
       {/* HEADER */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg">
-        <div className="px-6 py-5">
-          <h1 className="text-2xl font-bold text-center">Pilih Jadwal</h1>
+        <div className="px-4 sm:px-6 py-5">
+          <h1 className="text-xl sm:text-2xl font-bold text-center">Pilih Jadwal</h1>
         </div>
       </div>
 
       {/* KALENDER */}
-      <div className="bg-white rounded-2xl shadow-md p-6 mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-2">
+      <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6 mt-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-4 space-y-4 sm:space-y-0">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button 
               onClick={handlePrevWeek} 
               disabled={!canGoPrev()}
@@ -632,13 +633,13 @@ export default function BookingPelangganPage() {
             </button>
           </div>
 
-          <div className="overflow-x-auto flex gap-1 items-center">
+          <div className="flex flex-wrap gap-1 items-center justify-center sm:justify-start w-full sm:w-auto">
             {getWeekDates().map((date, i) => (
               <button
                 key={i}
                 onClick={() => handleDayClick(date)}
                 disabled={date < today}
-                className={`px-2 py-2 sm:px-3 sm:py-3 rounded-xl font-medium transition min-w-[70px] sm:min-w-[80px] text-center ${
+                className={`px-2 sm:px-3 py-2 sm:py-3 rounded-xl font-medium transition min-w-[60px] sm:min-w-[80px] text-center ${
                   date < today
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : isSameDay(date, selectedDate)
@@ -656,7 +657,7 @@ export default function BookingPelangganPage() {
 
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
-                <button className="p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition ml-2 flex-shrink-0">
+                <button className="p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition ml-2">
                   <CalendarIcon className="w-6 h-6 text-blue-600" />
                 </button>
               </PopoverTrigger>
@@ -684,17 +685,17 @@ export default function BookingPelangganPage() {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="bg-white rounded-2xl shadow-md p-6 mt-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+      <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch">
           {/* FOTO LAPANGAN */}
           <div className="flex flex-col justify-between h-full">
             <img
               src="/images/LAPANGAN.png"
               alt="Lapangan Indoor"
-              className="w-full h-80 object-cover rounded-xl shadow-lg"
+              className="w-full h-64 sm:h-80 object-cover rounded-xl shadow-lg"
             />
             <div className="mt-4 text-center">
-              <p className="text-lg font-semibold text-gray-700">
+              <p className="text-base sm:text-lg font-semibold text-gray-700">
                 {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: id })}
               </p>
               {isToday(selectedDate) && (
@@ -718,10 +719,10 @@ export default function BookingPelangganPage() {
           </div>
 
           {/* KONTEN KANAN */}
-          <div className="flex flex-col justify-between h-full space-y-6">
+          <div className="flex flex-col justify-between h-full space-y-4 sm:space-y-6">
             {/* JUDUL + BADGE */}
             <div className="text-center lg:text-left">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Lapangan Indoor</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Lapangan Indoor</h2>
               <div className="bg-white px-4 py-2 rounded-full shadow-md inline-flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-blue-600" />
                 <span className="font-semibold text-blue-900">{availableCount} Jam Tersedia</span>
@@ -729,9 +730,9 @@ export default function BookingPelangganPage() {
             </div>
 
             {/* SLOT WAKTU */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
               {loading ? (
-                <div className="col-span-3 text-center py-8">
+                <div className="col-span-full text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="text-sm text-gray-500 mt-2">Memuat slot waktu...</p>
                 </div>
@@ -741,7 +742,7 @@ export default function BookingPelangganPage() {
                     key={i}
                     onClick={() => handleSlotClick(slot)}
                     disabled={slot.booked}
-                    className={`p-3 rounded-lg text-center transition shadow-md relative ${
+                    className={`p-2 sm:p-3 rounded-lg text-center transition shadow-md relative ${
                       slot.booked
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
                         : selectedSlot?.startHour === slot.startHour
@@ -764,8 +765,8 @@ export default function BookingPelangganPage() {
 
             {/* PAGINATION */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 space-y-2 sm:space-y-0">
+                <div className="text-sm text-gray-600 text-center sm:text-left">
                   Menampilkan {startIndex + 1} - {Math.min(startIndex + slotsPerPage, timeSlots.length)} dari {timeSlots.length} slot
                 </div>
                 <div className="flex gap-2">
@@ -827,11 +828,11 @@ export default function BookingPelangganPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <img
                   src="/images/LAPANGAN.png"
                   alt="Lapangan"
-                  className="w-20 h-20 object-cover rounded-lg shadow"
+                  className="w-full sm:w-20 h-40 sm:h-20 object-cover rounded-lg shadow"
                 />
                 <div className="flex-1">
                   <h3 className="font-bold text-gray-900">Lapangan Indoor</h3>
@@ -949,7 +950,7 @@ export default function BookingPelangganPage() {
               MOHON DISAMPAIKAN KEPADA ANGGOTA YANG IKUT BERMAIN.
             </p>
 
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 variant="primary"
                 size="lg"
@@ -975,7 +976,7 @@ export default function BookingPelangganPage() {
       {showPaymentPopup && selectedSlot && userData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-blue-200">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 space-y-2 sm:space-y-0">
               <h2 className="text-xl font-bold text-blue-700">Instruksi Pembayaran</h2>
               <div className="flex gap-2">
                 <div className="bg-red-100 text-red-700 px-3 py-1 rounded font-bold text-sm">
@@ -1064,10 +1065,10 @@ export default function BookingPelangganPage() {
       {/* POPUP INVOICE - DIPERBAIKI DENGAN DATA USER YANG SESUAI */}
       {showInvoicePopup && selectedSlot && userData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full p-4 md:p-8 border border-gray-200">
+          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full p-4 sm:p-8 border border-gray-200">
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Invoice</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Invoice</h1>
               <p className="text-lg font-semibold text-blue-700">Sanguku.id</p>
               <p className="text-xs text-gray-600">
                 Jl. Baladewa No.5, Tambak Bayan, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281
@@ -1078,14 +1079,14 @@ export default function BookingPelangganPage() {
             </div>
 
             {/* Billed To + Invoice Info - MENGGUNAKAN DATA USER YANG LOGIN */}
-            <div className="flex flex-col justify-between mb-6 text-sm md:flex-row">
+            <div className="flex flex-col sm:flex-row justify-between mb-6 text-sm space-y-4 sm:space-y-0">
               <div>
                 <p className="font-bold">Billed To:</p>
                 <p className="font-semibold">{userData.nama}</p>
                 <p>{userData.telepon}</p>
                 <p>{userData.email}</p>
               </div>
-              <div className="text-left mt-4 md:text-right md:mt-0">
+              <div className="text-left sm:text-right">
                 <p className="font-bold">Invoice {invoiceNo}</p>
                 <p>Date: {format(selectedDate, 'dd MMMM yyyy', { locale: id })}</p>
                 <p>Time: {format(new Date(), 'HH:mm:ss')}</p>
@@ -1094,30 +1095,28 @@ export default function BookingPelangganPage() {
             </div>
 
             {/* Tabel */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-t border-b min-w-[600px]">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left py-2 px-1">ID</th>
-                    <th className="text-left py-2 px-1">Tanggal</th>
-                    <th className="text-left py-2 px-1">Durasi</th>
-                    <th className="text-left py-2 px-1">Jam Mulai</th>
-                    <th className="text-left py-2 px-1">Jam Akhir</th>
-                    <th className="text-right py-2 px-1">Tarif</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-2 px-1 font-mono">#{bookingId}</td>
-                    <td className="py-2 px-1">{format(selectedDate, 'dd-MM-yyyy')}</td>
-                    <td className="py-2 px-1">60 Menit</td>
-                    <td className="py-2 px-1">{startTime}</td>
-                    <td className="py-2 px-1">{endTime}</td>
-                    <td className="py-2 px-1 text-right">Rp {subtotal.toLocaleString('id-ID')}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <table className="w-full text-sm border-t border-b">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-2 px-1">ID</th>
+                  <th className="text-left py-2 px-1">Tanggal</th>
+                  <th className="text-left py-2 px-1">Durasi</th>
+                  <th className="text-left py-2 px-1">Jam Mulai</th>
+                  <th className="text-left py-2 px-1">Jam Akhir</th>
+                  <th className="text-right py-2 px-1">Tarif</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="py-2 px-1 font-mono">#{bookingId}</td>
+                  <td className="py-2 px-1">{format(selectedDate, 'dd-MM-yyyy')}</td>
+                  <td className="py-2 px-1">60 Menit</td>
+                  <td className="py-2 px-1">{startTime}</td>
+                  <td className="py-2 px-1">{endTime}</td>
+                  <td className="py-2 px-1 text-right">Rp {subtotal.toLocaleString('id-ID')}</td>
+                </tr>
+              </tbody>
+            </table>
 
             {/* Total */}
             <div className="mt-4 text-right space-y-1 text-sm">
