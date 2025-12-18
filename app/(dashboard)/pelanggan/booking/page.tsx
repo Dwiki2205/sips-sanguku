@@ -632,13 +632,13 @@ export default function BookingPelangganPage() {
             </button>
           </div>
 
-          <div className="flex gap-1 items-center">
+          <div className="overflow-x-auto flex gap-1 items-center">
             {getWeekDates().map((date, i) => (
               <button
                 key={i}
                 onClick={() => handleDayClick(date)}
                 disabled={date < today}
-                className={`px-3 py-3 rounded-xl font-medium transition min-w-[80px] text-center ${
+                className={`px-2 py-2 sm:px-3 sm:py-3 rounded-xl font-medium transition min-w-[70px] sm:min-w-[80px] text-center ${
                   date < today
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : isSameDay(date, selectedDate)
@@ -656,7 +656,7 @@ export default function BookingPelangganPage() {
 
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
-                <button className="p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition ml-2">
+                <button className="p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition ml-2 flex-shrink-0">
                   <CalendarIcon className="w-6 h-6 text-blue-600" />
                 </button>
               </PopoverTrigger>
@@ -729,7 +729,7 @@ export default function BookingPelangganPage() {
             </div>
 
             {/* SLOT WAKTU */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {loading ? (
                 <div className="col-span-3 text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -827,7 +827,7 @@ export default function BookingPelangganPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <img
                   src="/images/LAPANGAN.png"
                   alt="Lapangan"
@@ -1064,10 +1064,10 @@ export default function BookingPelangganPage() {
       {/* POPUP INVOICE - DIPERBAIKI DENGAN DATA USER YANG SESUAI */}
       {showInvoicePopup && selectedSlot && userData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full p-8 border border-gray-200">
+          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full p-4 md:p-8 border border-gray-200">
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-gray-900">Invoice</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Invoice</h1>
               <p className="text-lg font-semibold text-blue-700">Sanguku.id</p>
               <p className="text-xs text-gray-600">
                 Jl. Baladewa No.5, Tambak Bayan, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281
@@ -1078,14 +1078,14 @@ export default function BookingPelangganPage() {
             </div>
 
             {/* Billed To + Invoice Info - MENGGUNAKAN DATA USER YANG LOGIN */}
-            <div className="flex justify-between mb-6 text-sm">
+            <div className="flex flex-col justify-between mb-6 text-sm md:flex-row">
               <div>
                 <p className="font-bold">Billed To:</p>
                 <p className="font-semibold">{userData.nama}</p>
                 <p>{userData.telepon}</p>
                 <p>{userData.email}</p>
               </div>
-              <div className="text-right">
+              <div className="text-left mt-4 md:text-right md:mt-0">
                 <p className="font-bold">Invoice {invoiceNo}</p>
                 <p>Date: {format(selectedDate, 'dd MMMM yyyy', { locale: id })}</p>
                 <p>Time: {format(new Date(), 'HH:mm:ss')}</p>
@@ -1094,28 +1094,30 @@ export default function BookingPelangganPage() {
             </div>
 
             {/* Tabel */}
-            <table className="w-full text-sm border-t border-b">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left py-2 px-1">ID</th>
-                  <th className="text-left py-2 px-1">Tanggal</th>
-                  <th className="text-left py-2 px-1">Durasi</th>
-                  <th className="text-left py-2 px-1">Jam Mulai</th>
-                  <th className="text-left py-2 px-1">Jam Akhir</th>
-                  <th className="text-right py-2 px-1">Tarif</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="py-2 px-1 font-mono">#{bookingId}</td>
-                  <td className="py-2 px-1">{format(selectedDate, 'dd-MM-yyyy')}</td>
-                  <td className="py-2 px-1">60 Menit</td>
-                  <td className="py-2 px-1">{startTime}</td>
-                  <td className="py-2 px-1">{endTime}</td>
-                  <td className="py-2 px-1 text-right">Rp {subtotal.toLocaleString('id-ID')}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-t border-b min-w-[600px]">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left py-2 px-1">ID</th>
+                    <th className="text-left py-2 px-1">Tanggal</th>
+                    <th className="text-left py-2 px-1">Durasi</th>
+                    <th className="text-left py-2 px-1">Jam Mulai</th>
+                    <th className="text-left py-2 px-1">Jam Akhir</th>
+                    <th className="text-right py-2 px-1">Tarif</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="py-2 px-1 font-mono">#{bookingId}</td>
+                    <td className="py-2 px-1">{format(selectedDate, 'dd-MM-yyyy')}</td>
+                    <td className="py-2 px-1">60 Menit</td>
+                    <td className="py-2 px-1">{startTime}</td>
+                    <td className="py-2 px-1">{endTime}</td>
+                    <td className="py-2 px-1 text-right">Rp {subtotal.toLocaleString('id-ID')}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
             {/* Total */}
             <div className="mt-4 text-right space-y-1 text-sm">

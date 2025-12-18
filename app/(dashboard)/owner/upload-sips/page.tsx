@@ -1,4 +1,3 @@
-// app/(dashboard)/owner/upload-sips/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -139,29 +138,29 @@ export default function UploadSIPSPage() {
   const closeModal = () => setModal({ ...modal, isOpen: false });
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl border overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6">
-            <h1 className="text-2xl font-bold flex items-center gap-3">
-              <Upload className="w-8 h-8" />
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 sm:p-6">
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3">
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8" />
               Upload File SIPS ke CRM
             </h1>
-            <p className="mt-2 text-blue-100">
+            <p className="mt-2 text-blue-100 text-sm sm:text-base">
               Sesuai ADUH_Spesifikasi Teknologi & Integrasi POS (INT-SIPS-CRM-001)
             </p>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             {/* Informasi Wajib */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-8">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5 mb-6 sm:mb-8">
               <div className="flex gap-3">
-                <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 flex-shrink-0" />
                 <div>
-                  <h3 className="font-bold text-amber-900">Ketentuan Upload (WAJIB DIPATUHI)</h3>
-                  <ul className="mt-2 text-sm text-amber-800 space-y-1">
-                    <li>• Nama file: <code className="bg-amber-200 px-2 py-1 rounded">sips_pelanggan_YYYYMMDD_HHMM.csv</code></li>
-                    <li>• Contoh: <code className="bg-amber-200 px-2 py-1 rounded">sips_pelanggan_20251125_2300.csv</code></li>
+                  <h3 className="font-bold text-amber-900 text-base sm:text-lg">Ketentuan Upload (WAJIB DIPATUHI)</h3>
+                  <ul className="mt-2 text-xs sm:text-sm text-amber-800 space-y-1">
+                    <li>• Nama file: <code className="bg-amber-200 px-1 sm:px-2 py-1 rounded">sips_pelanggan_YYYYMMDD_HHMM.csv</code></li>
+                    <li>• Contoh: <code className="bg-amber-200 px-1 sm:px-2 py-1 rounded">sips_pelanggan_20251125_2300.csv</code></li>
                     <li>• Upload manual hanya untuk testing / emergency</li>
                     <li>• Upload otomatis tetap jalan tiap hari pukul 23:00 WIB via cron</li>
                     <li>• File akan divalidasi ketat oleh server CRM</li>
@@ -171,7 +170,7 @@ export default function UploadSIPSPage() {
             </div>
 
             {/* Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 sm:p-12 text-center">
               <input
                 id="file-input"
                 type="file"
@@ -182,8 +181,8 @@ export default function UploadSIPSPage() {
 
               {!file ? (
                 <div>
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">Drag & drop file CSV di sini, atau</p>
+                  <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="mt-2 sm:mt-4 text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">Drag & drop file CSV di sini, atau</p>
                   <Button
                     size="lg"
                     onClick={() => document.getElementById('file-input')?.click()}
@@ -194,14 +193,14 @@ export default function UploadSIPSPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-center gap-3 text-green-600">
-                    <CheckCircle className="w-8 h-8" />
-                    <span className="text-lg font-semibold">{file.name}</span>
+                    <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8" />
+                    <span className="text-base sm:text-lg font-semibold">{file.name}</span>
                   </div>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     Ukuran: {(file.size / 1024).toFixed(2)} KB
                   </p>
 
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex gap-3 justify-center flex-col sm:flex-row">
                     <Button
                       variant="success"
                       size="lg"
@@ -224,20 +223,20 @@ export default function UploadSIPSPage() {
                   </div>
 
                   {uploading && (
-                    <p className="text-blue-600 flex items-center gap-2 justify-center mt-4">
+                    <p className="text-blue-600 flex items-center gap-2 justify-center mt-4 text-sm">
                       <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
                       Sedang mengunggah dan mengimpor data...
                     </p>
                   )}
 
                   {result === 'success' && !modal.isOpen && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
                       {message}
                     </div>
                   )}
 
                   {result === 'error' && !modal.isOpen && (
-                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
+                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2 text-sm">
                       <XCircle className="w-5 h-5" />
                       {message}
                     </div>
@@ -246,44 +245,44 @@ export default function UploadSIPSPage() {
               )}
             </div>
 
-            <div className="mt-8 text-sm text-gray-500 text-center">
+            <div className="mt-6 sm:mt-8 text-xs sm:text-sm text-gray-500 text-center">
               Upload otomatis terjadwal: <strong>Setiap hari pukul 23:00 WIB</strong>
             </div>
 
             {/* Tabel Riwayat Upload */}
-            <div className="mt-12">
-              <h2 className="text-xl font-bold flex items-center gap-3 mb-4">
-                <Clock className="w-6 h-6 text-blue-600" />
+            <div className="mt-8 sm:mt-12">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-3 mb-4">
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 Riwayat Upload
               </h2>
               {loadingHistory ? (
-                <p className="text-center text-gray-500">Memuat riwayat...</p>
+                <p className="text-center text-gray-500 text-sm">Memuat riwayat...</p>
               ) : history.length === 0 ? (
-                <p className="text-center text-gray-500">Belum ada riwayat upload.</p>
+                <p className="text-center text-gray-500 text-sm">Belum ada riwayat upload.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                  <table className="min-w-full bg-white border border-gray-200 rounded-lg text-xs sm:text-sm">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama File</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Upload</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Record</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesan</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama File</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Upload</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Record</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesan</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {history.map((item) => (
                         <tr key={item.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.filename}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(item.upload_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-gray-900">{item.filename}</td>
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-gray-900">{new Date(item.upload_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                               {item.status.toUpperCase()}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.records_imported}</td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{item.message}</td>
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-gray-900">{item.records_imported}</td>
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-gray-900">{item.message}</td>
                         </tr>
                       ))}
                     </tbody>
