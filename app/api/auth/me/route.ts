@@ -1,6 +1,6 @@
 // app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { cookies } from 'next/headers'; // ← import langsung di sini
 import pool from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 
@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // JANGAN pakai getAuthToken() dari lib
     const cookieStore = cookies();
     const token = cookieStore.get('token')?.value;
 
@@ -68,11 +69,11 @@ export async function GET(request: NextRequest) {
       username: user.username,
       email: user.email,
       telepon: user.telepon,
-      role_id: user.role_id || null,
-      role_name: user.role_name,
+      role_id: user.role_id,
+      role_name: user.role_name,                    // KONSISTEN: role_name
       permissions: typeof user.permissions === 'string'
-        ? JSON.parse(user.permissions) || []
-        : user.permissions || [],
+        ? JSON.parse(user.permissions)
+        : user.permissions,
       tanggal_bergabung: user.tanggal_bergabung,
     });
 

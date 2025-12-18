@@ -1,7 +1,7 @@
 // app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { generateToken, verifyPassword } from '@/lib/auth';
+import { generateToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validasi password menggunakan verifyPassword
-    const isValid = await verifyPassword(password, user.password);
+    // PERBAIKAN: Gunakan perbandingan plain text
+    const isValid = password === user.password;
     
     console.log('Password validation:', isValid ? 'Valid' : 'Invalid');
 
@@ -83,11 +83,11 @@ export async function POST(request: NextRequest) {
         username: user.username,
         email: user.email,
         telepon: user.telepon,
-        role_id: user.role_id || null,
+        role_id: user.role_id,
         role_name: user.role_name,
         permissions: typeof user.permissions === 'string'
-          ? JSON.parse(user.permissions) || []
-          : user.permissions || [],
+          ? JSON.parse(user.permissions)
+          : user.permissions,
         tanggal_bergabung: user.tanggal_bergabung || user.tanggal_registrasi,
       },
     });
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: unknown) {
-    // Handle error dengan type safety
+    // PERBAIKAN: Handle error dengan type safety
     console.error('Login error:', error);
     
     let errorMessage = 'Terjadi kesalahan server';

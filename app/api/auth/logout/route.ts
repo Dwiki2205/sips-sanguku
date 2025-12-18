@@ -6,7 +6,7 @@ export async function POST() {
     console.log('🔄 Processing logout request...');
     
     // Hapus cookie menggunakan fungsi yang sudah ada
-    // await removeAuthCookie();
+    await removeAuthCookie();
 
     // Buat response success
     const response = NextResponse.json({

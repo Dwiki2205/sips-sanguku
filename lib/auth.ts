@@ -1,14 +1,9 @@
-// lib/auth.ts
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
 // Development mode - skip hashing for easier testing
 const isDevelopment = process.env.NODE_ENV === 'development';
-
-if (isDevelopment) {
-  console.warn('WARNING: Password hashing disabled in development mode!');
-}
 
 export async function hashPassword(password: string): Promise<string> {
   if (isDevelopment) {
@@ -28,10 +23,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export function generateToken(payload: any): string {
-  return jwt.sign(payload, process.env.JWT_SECRET || 'dev-secret-key', { 
-    expiresIn: '24h',
-    algorithm: 'HS256' 
-  });
+  return jwt.sign(payload, process.env.JWT_SECRET || 'dev-secret-key', { expiresIn: '24h' });
 }
 
 export function verifyToken(token: string): any {
