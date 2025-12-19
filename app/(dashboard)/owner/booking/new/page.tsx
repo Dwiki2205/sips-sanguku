@@ -17,6 +17,14 @@ type FormData = {
   metode_pembayaran: string;
 };
 
+type FormErrors = {
+  pelanggan_id?: string;
+  tanggal_booking?: string;
+  jam_mulai?: string;
+  jam_selesai?: string;
+  total_biaya?: string;
+};
+
 export default function BookingFormPage() {
   const router = useRouter();
   const { action } = useParams();
@@ -37,6 +45,8 @@ export default function BookingFormPage() {
     total_biaya: '',
     metode_pembayaran: 'Cash',
   });
+
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const generatedId = `BKG${String(Date.now()).slice(-4)}`;
 
@@ -66,19 +76,65 @@ export default function BookingFormPage() {
   }, [isEdit, action]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    
+    // Hapus error saat user mulai mengisi
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    let isValid = true;
+
+    // Validasi setiap field
+    if (!form.pelanggan_id.trim()) {
+      newErrors.pelanggan_id = 'Data belum lengkap';
+      isValid = false;
+    }
+
+    if (!form.tanggal_booking) {
+      newErrors.tanggal_booking = 'Data belum lengkap';
+      isValid = false;
+    }
+
+    if (!form.jam_mulai) {
+      newErrors.jam_mulai = 'Data belum lengkap';
+      isValid = false;
+    }
+
+    if (!form.jam_selesai) {
+      newErrors.jam_selesai = 'Data belum lengkap';
+      isValid = false;
+    }
+
+    if (!form.total_biaya.trim()) {
+      newErrors.total_biaya = 'Data belum lengkap';
+      isValid = false;
+    } else if (parseInt(form.total_biaya) <= 0) {
+      newErrors.total_biaya = 'Total biaya harus lebih dari 0';
+      isValid = false;
+    }
+
+    // Validasi jam selesai > jam mulai
+    if (form.jam_mulai && form.jam_selesai && form.jam_selesai <= form.jam_mulai) {
+      newErrors.jam_selesai = 'Jam selesai harus setelah jam mulai';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
 
-    // Validasi wajib isi
-    if (!form.pelanggan_id || !form.tanggal_booking || !form.jam_mulai || !form.jam_selesai || !form.total_biaya) {
-      setModalType('warning');
-      setModalTitle('Data Belum Diisi Lengkap');
-      setModalOpen(true);
-      return;
+    // Validasi form
+    if (!validateForm()) {
+      return; // Berhenti jika validasi gagal
     }
 
     const url = isEdit ? `/api/booking/${form.booking_id}` : '/api/booking';
@@ -178,50 +234,86 @@ export default function BookingFormPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">ID Pelanggan *</label>
                 <input
-                  required
                   name="pelanggan_id"
                   value={form.pelanggan_id}
                   onChange={handleChange}
                   placeholder="PLG001"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.pelanggan_id 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                  } outline-none transition`}
                 />
+                {errors.pelanggan_id && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                    {errors.pelanggan_id}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Booking *</label>
                 <input
-                  required
                   type="date"
                   name="tanggal_booking"
                   value={form.tanggal_booking}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.tanggal_booking 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                  } outline-none transition`}
                 />
+                {errors.tanggal_booking && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                    {errors.tanggal_booking}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Jam Mulai *</label>
                 <input
-                  required
                   type="time"
                   name="jam_mulai"
                   value={form.jam_mulai}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.jam_mulai 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                  } outline-none transition`}
                 />
+                {errors.jam_mulai && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                    {errors.jam_mulai}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Total Biaya *</label>
                 <input
-                  required
                   type="number"
                   name="total_biaya"
                   value={form.total_biaya}
                   onChange={handleChange}
                   placeholder="150000"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition appearance-none [&::-webkit-outer-spin-button]:hidden [&::-webkit-inner-spin-button]:hidden"
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.total_biaya 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                  } outline-none transition appearance-none [&::-webkit-outer-spin-button]:hidden [&::-webkit-inner-spin-button]:hidden`}
                 />
+                {errors.total_biaya && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                    {errors.total_biaya}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -244,13 +336,22 @@ export default function BookingFormPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Jam Selesai *</label>
                 <input
-                  required
                   type="time"
                   name="jam_selesai"
                   value={form.jam_selesai}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.jam_selesai 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                  } outline-none transition`}
                 />
+                {errors.jam_selesai && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                    {errors.jam_selesai}
+                  </p>
+                )}
               </div>
 
               <div>
