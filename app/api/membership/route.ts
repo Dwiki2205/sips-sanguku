@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import pool from '@/lib/db';
-import { query } from '@/lib/database'; // Gunakan wrapper database
+import { query } from '@/lib/db'; // Gunakan wrapper database
 
 export const dynamic = 'force-dynamic';
 
