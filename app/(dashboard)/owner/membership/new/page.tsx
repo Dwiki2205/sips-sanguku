@@ -29,7 +29,7 @@ export default function NewMembershipPage() {
     expired_date: '',
   });
 
-  const generatedId = `MEM${String(Date.now()).slice(-6)}`;
+  const generatedId = `MEM${String(Date.now()).slice(-3)}`;
 
   // Hitung expired date otomatis
   useEffect(() => {
