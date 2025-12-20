@@ -17,12 +17,12 @@ type ApiError = {
   message: string;
   error?: string;
   code?: string;
+  details?: string;
 };
 
 export default function NewMembershipPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [currentDateTime, setCurrentDateTime] = useState<string>('');
 
   // State untuk modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -32,7 +32,7 @@ export default function NewMembershipPage() {
 
   const [form, setForm] = useState<FormData>({
     pelanggan_id: '',
-    tanggal_daftar: '',
+    tanggal_daftar: new Date().toISOString().split('T')[0],
     tier_membership: 'Silver',
     expired_date: '',
   });
@@ -41,36 +41,27 @@ export default function NewMembershipPage() {
 
   const generatedId = `MEM${String(Date.now()).slice(-3)}`;
 
-  // Update waktu real-time
-  useEffect(() => {
-    const updateDateTime = () => {
-      const now = new Date();
-      const dateString = now.toISOString().split('T')[0];
-      const timeString = now.toLocaleTimeString('id-ID', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false 
-      });
-      
-      setCurrentDateTime(`${dateString} ${timeString}`);
-      
-      // Set tanggal daftar ke tanggal hari ini jika belum diisi
-      if (!form.tanggal_daftar) {
-        setForm(prev => ({ ...prev, tanggal_daftar: dateString }));
-      }
-    };
+  // Fungsi untuk mendapatkan tanggal hari ini dalam format YYYY-MM-DD
+  const getTodayDate = (): string => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
 
-    // Update segera saat komponen mount
-    updateDateTime();
+  // Fungsi untuk membandingkan tanggal tanpa waktu
+  const compareDates = (dateStr1: string, dateStr2: string): number => {
+    const date1 = new Date(dateStr1);
+    const date2 = new Date(dateStr2);
     
-    // Update setiap detik untuk waktu yang real-time
-    const interval = setInterval(updateDateTime, 1000);
+    // Set waktu ke 00:00:00 untuk kedua tanggal
+    date1.setHours(0, 0, 0, 0);
+    date2.setHours(0, 0, 0, 0);
+    
+    if (date1 < date2) return -1;
+    if (date1 > date2) return 1;
+    return 0;
+  };
 
-    return () => clearInterval(interval);
-  }, [form.tanggal_daftar]);
-
-  // Hitung expired date otomatis berdasarkan tanggal daftar dan tier
+  // Hitung expired date otomatis
   useEffect(() => {
     if (form.tanggal_daftar) {
       const date = new Date(form.tanggal_daftar);
@@ -90,72 +81,36 @@ export default function NewMembershipPage() {
           newDate.setMonth(newDate.getMonth() + 1);
       }
 
-      // Format ke YYYY-MM-DD untuk input date
-      const formattedDate = newDate.toISOString().split('T')[0];
-      
-      // Pastikan tidak ada loop infinite update
-      if (form.expired_date !== formattedDate) {
-        setForm(prev => ({
-          ...prev,
-          expired_date: formattedDate
-        }));
-      }
+      setForm(prev => ({
+        ...prev,
+        expired_date: newDate.toISOString().split('T')[0]
+      }));
     }
-  }, [form.tanggal_daftar, form.tier_membership, form.expired_date]);
+  }, [form.tanggal_daftar, form.tier_membership]);
 
   const validateForm = (): boolean => {
-  const newErrors: Partial<Record<keyof FormData, string>> = {};
-  
-  if (!form.pelanggan_id.trim()) {
-    newErrors.pelanggan_id = 'ID Pelanggan harus diisi';
-  } else if (form.pelanggan_id.trim().length < 3) {
-    newErrors.pelanggan_id = 'ID Pelanggan minimal 3 karakter';
-  }
-  
-  if (!form.tanggal_daftar) {
-    newErrors.tanggal_daftar = 'Tanggal daftar harus diisi';
-  } else {
-    const selectedDate = new Date(form.tanggal_daftar);
-    const today = new Date();
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
     
-    // Reset waktu untuk kedua tanggal agar hanya membandingkan tanggal saja (tanpa waktu)
-    selectedDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    
-    // Cek jika tanggal yang dipilih adalah tanggal di masa depan
-    if (selectedDate > today) {
-      newErrors.tanggal_daftar = 'Tanggal daftar tidak boleh melebihi hari ini';
+    if (!form.pelanggan_id.trim()) {
+      newErrors.pelanggan_id = 'ID Pelanggan harus diisi';
+    } else if (form.pelanggan_id.trim().length < 3) {
+      newErrors.pelanggan_id = 'ID Pelanggan minimal 3 karakter';
     }
-  }
-  
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
+    
+    if (!form.tanggal_daftar) {
+      newErrors.tanggal_daftar = 'Tanggal daftar harus diisi';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    
     // Clear error ketika user mulai mengisi
     if (errors[name as keyof FormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleTanggalDaftarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setForm(prev => ({ ...prev, tanggal_daftar: value }));
-    
-    if (errors.tanggal_daftar) {
-      setErrors(prev => ({ ...prev, tanggal_daftar: undefined }));
-    }
-  };
-
-  const handleUseTodayDate = () => {
-    const today = new Date().toISOString().split('T')[0];
-    setForm(prev => ({ ...prev, tanggal_daftar: today }));
-    
-    if (errors.tanggal_daftar) {
-      setErrors(prev => ({ ...prev, tanggal_daftar: undefined }));
     }
   };
 
@@ -184,11 +139,31 @@ export default function NewMembershipPage() {
         body: JSON.stringify({
           membership_id: generatedId,
           ...form,
-          // Kirim timestamp yang lebih akurat untuk backend
-          timestamp: new Date().toISOString(),
         }),
       });
 
+      // Cek status code terlebih dahulu
+      if (res.status === 409) {
+        // Status 409 Conflict - pasti sudah terdaftar
+        setModalType('warning');
+        setModalTitle('Data Membership Sudah Terdaftar');
+        setModalMessage('Pelanggan ini sudah memiliki membership aktif. Silakan periksa kembali ID Pelanggan.');
+        
+        // Coba parse response untuk mendapatkan detail error
+        try {
+          const data = await res.json();
+          if (data.message || data.error) {
+            setModalMessage(`Pelanggan ini sudah memiliki membership aktif. (${data.message || data.error})`);
+          }
+        } catch {
+          // Jika response bukan JSON, gunakan pesan default
+        }
+        
+        setModalOpen(true);
+        return;
+      }
+
+      // Jika bukan 409, coba parse response
       const data = await res.json();
 
       if (res.ok) {
@@ -197,23 +172,44 @@ export default function NewMembershipPage() {
         setModalMessage(`Membership dengan ID ${generatedId} berhasil ditambahkan.`);
         setModalOpen(true);
       } else {
-        // Handle error dari backend
+        // Handle error dari backend dengan berbagai kemungkinan format
         const errorData = data as ApiError;
-        const errorMessage = errorData.error || errorData.message || 'Gagal membuat membership';
+        let errorMessage = errorData.message || errorData.error || 'Gagal membuat membership';
+        
+        // Debug: log error untuk melihat format sebenarnya
+        console.log('Error response:', errorData);
+        console.log('Response status:', res.status);
+        
+        // Cek berbagai kemungkinan format error
+        const lowerErrorMessage = errorMessage.toLowerCase();
         
         if (
-          errorMessage.toLowerCase().includes('sudah terdaftar') || 
-          errorMessage.toLowerCase().includes('duplicate') ||
-          errorMessage.toLowerCase().includes('exists') ||
-          errorMessage.toLowerCase().includes('terdaftar')
+          lowerErrorMessage.includes('sudah terdaftar') || 
+          lowerErrorMessage.includes('duplicate') ||
+          lowerErrorMessage.includes('exists') ||
+          lowerErrorMessage.includes('terdaftar') ||
+          lowerErrorMessage.includes('unique constraint') ||
+          lowerErrorMessage.includes('conflict')
         ) {
           setModalType('warning');
           setModalTitle('Data Membership Sudah Terdaftar');
-          setModalMessage('Pelanggan ini sudah memiliki membership aktif.');
-        } else if (errorMessage.toLowerCase().includes('not found') || errorMessage.toLowerCase().includes('tidak ditemukan')) {
+          setModalMessage('Pelanggan ini sudah memiliki membership aktif. Silakan periksa kembali ID Pelanggan.');
+        } else if (lowerErrorMessage.includes('not found') || lowerErrorMessage.includes('tidak ditemukan')) {
           setModalType('warning');
           setModalTitle('Pelanggan Tidak Ditemukan');
           setModalMessage('ID Pelanggan yang dimasukkan tidak valid.');
+        } else if (lowerErrorMessage.includes('invalid') || lowerErrorMessage.includes('tidak valid')) {
+          setModalType('warning');
+          setModalTitle('Data Tidak Valid');
+          setModalMessage(errorMessage);
+        } else if (res.status === 400) {
+          setModalType('warning');
+          setModalTitle('Data Tidak Valid');
+          setModalMessage(errorMessage || 'Data yang dimasukkan tidak valid.');
+        } else if (res.status === 500) {
+          setModalType('error');
+          setModalTitle('Server Error');
+          setModalMessage('Terjadi kesalahan pada server. Silakan coba lagi nanti.');
         } else {
           setModalType('error');
           setModalTitle('Gagal Membuat Membership');
@@ -264,30 +260,6 @@ export default function NewMembershipPage() {
     return expired < today ? 'Kadaluarsa' : 'Aktif';
   };
 
-  // Format tanggal untuk display yang lebih user-friendly
-  const formatDisplayDate = (dateString: string) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Hitung selisih hari antara tanggal daftar dan expired
-  const calculateDaysDifference = () => {
-    if (!form.tanggal_daftar || !form.expired_date) return 0;
-    
-    const start = new Date(form.tanggal_daftar);
-    const end = new Date(form.expired_date);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  };
-
   return (
     <>
       <div className="min-h-screen bg-gray-50">
@@ -301,12 +273,7 @@ export default function NewMembershipPage() {
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <div>
-              <h1 className="text-2xl font-bold">Tambah Membership Baru</h1>
-              <p className="text-sm text-blue-100 opacity-90 mt-1">
-                Waktu saat ini: <span className="font-mono">{currentDateTime}</span>
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold">Tambah Membership Baru</h1>
           </div>
         </div>
 
@@ -323,7 +290,7 @@ export default function NewMembershipPage() {
                     value={generatedId} 
                     className="w-full px-4 py-3 rounded-lg bg-gray-100 text-gray-700 font-medium border border-gray-300" 
                   />
-                  <p className="text-xs text-gray-500 mt-1">ID akan digenerate otomatis berdasarkan timestamp</p>
+                  <p className="text-xs text-gray-500 mt-1">ID akan digenerate otomatis</p>
                 </div>
 
                 <div>
@@ -345,32 +312,19 @@ export default function NewMembershipPage() {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Tanggal Daftar <span className="text-red-500">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleUseTodayDate}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      Gunakan Hari Ini
-                    </button>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tanggal Daftar <span className="text-red-500">*</span>
+                  </label>
                   <input 
                     type="date" 
                     name="tanggal_daftar" 
                     value={form.tanggal_daftar} 
-                    onChange={handleTanggalDaftarChange}
-                    max={new Date().toISOString().split('T')[0]}
+                    onChange={handleChange}
+                    max={getTodayDate()}
                     className={`w-full px-4 py-3 rounded-lg border ${errors.tanggal_daftar ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none`} 
                   />
-                  {errors.tanggal_daftar ? (
+                  {errors.tanggal_daftar && (
                     <p className="text-xs text-red-500 mt-1">{errors.tanggal_daftar}</p>
-                  ) : (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Tanggal terpilih: {form.tanggal_daftar ? formatDisplayDate(form.tanggal_daftar) : '-'}
-                    </p>
                   )}
                 </div>
               </div>
@@ -404,11 +358,8 @@ export default function NewMembershipPage() {
                     value={form.expired_date} 
                     onChange={handleChange} 
                     readOnly
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 font-medium" 
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50" 
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {form.expired_date && `Akan berakhir: ${formatDisplayDate(form.expired_date)}`}
-                  </p>
                 </div>
 
                 <div>
@@ -425,26 +376,15 @@ export default function NewMembershipPage() {
             {/* RINGKASAN */}
             <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h3 className="font-semibold text-blue-800 mb-2">Ringkasan Membership:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div><span className="text-blue-600">Tier: </span><span className="font-medium">{form.tier_membership}</span></div>
                 <div><span className="text-blue-600">Tanggal Daftar: </span><span className="font-medium">
-                  {form.tanggal_daftar ? formatDisplayDate(form.tanggal_daftar) : '-'}</span></div>
+                  {form.tanggal_daftar ? new Date(form.tanggal_daftar).toLocaleDateString('id-ID') : '-'}</span></div>
                 <div><span className="text-blue-600">Expired: </span><span className="font-medium">
-                  {form.expired_date ? formatDisplayDate(form.expired_date) : '-'}</span></div>
+                  {form.expired_date ? new Date(form.expired_date).toLocaleDateString('id-ID') : '-'}</span></div>
               </div>
-              <div className="flex flex-wrap gap-4 text-xs">
-                <div className="text-blue-600">
-                  <span className="font-medium">Durasi:</span> {getTierDuration(form.tier_membership).toLowerCase()} 
-                  {form.tanggal_daftar && form.expired_date && (
-                    <span> ({calculateDaysDifference()} hari)</span>
-                  )}
-                </div>
-                <div className="text-blue-600">
-                  <span className="font-medium">Status:</span> {getStatus()}
-                </div>
-                <div className="text-blue-600">
-                  <span className="font-medium">ID:</span> {generatedId}
-                </div>
+              <div className="mt-2 text-xs text-blue-600">
+                Membership akan berlaku selama {getTierDuration(form.tier_membership).toLowerCase()}
               </div>
             </div>
 
