@@ -174,7 +174,7 @@ export default function NewMembershipPage() {
       } else {
         // Handle error dari backend dengan berbagai kemungkinan format
         const errorData = data as ApiError;
-        let errorMessage = errorData.message || errorData.error || 'Gagal membuat membership';
+        const errorMessage = errorData.message || errorData.error || 'Gagal membuat membership';
         
         // Debug: log error untuk melihat format sebenarnya
         console.log('Error response:', errorData);
