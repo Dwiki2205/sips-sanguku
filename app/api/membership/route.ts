@@ -1,8 +1,8 @@
 // app/api/membership/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import pool from '@/lib/db';
-import { query } from '@/lib/db'; // Gunakan wrapper database
+import { query } from '@/lib/db';
+import { transformMembershipData, calculateMembershipStatus } from '@/lib/membership'; // Import helper
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100); // batasi max 100
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
     const search = (searchParams.get('search') || '').trim();
     const pelanggan_id = searchParams.get('pelanggan_id');
@@ -18,11 +18,25 @@ export async function GET(request: NextRequest) {
 
     // Base query
     let sql = `
-      SELECT m.*, p.nama_lengkap, p.email, p.telepon
+      SELECT 
+        m.membership_id,
+        m.pelanggan_id,
+        m.tanggal_daftar,
+        m.tier_membership,
+        m.expired_date,
+        p.nama_lengkap,
+        p.email,
+        p.telepon,
+        -- Hitung status secara real-time dalam query
+        CASE 
+          WHEN m.expired_date < CURRENT_DATE THEN 'expired'
+          ELSE 'active'
+        END as status_keaktifan
       FROM membership m
       JOIN pelanggan p ON m.pelanggan_id = p.pelanggan_id
       WHERE 1=1
     `;
+    
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -38,7 +52,7 @@ export async function GET(request: NextRequest) {
       params.push(`%${username}%`);
     }
 
-    // Search global (nama, email, telepon, id, tier)
+    // Search global
     if (search) {
       const searchParam = `%${search}%`;
       sql += ` AND (
@@ -53,28 +67,35 @@ export async function GET(request: NextRequest) {
 
     // === HITUNG TOTAL untuk pagination ===
     const countSql = `SELECT COUNT(*) as total FROM (${sql}) AS subquery`;
-    const countParams = params.slice(); // copy params
+    const countParams = params.slice();
     const countResult = await query(countSql, countParams);
     const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
-        // === Tambahkan ORDER, LIMIT, OFFSET ===
-    sql += ` ORDER BY m.tanggal_daftar DESC`;
+    // === Tambahkan ORDER, LIMIT, OFFSET ===
+    sql += ` ORDER BY 
+      CASE 
+        WHEN expired_date < CURRENT_DATE THEN 2
+        ELSE 1
+      END,
+      m.tanggal_daftar DESC`;
     
-    // GANTI DENGAN INI:
     const limitParam = params.length + 1;
     const offsetParam = params.length + 2;
     sql += ` LIMIT $${limitParam}::integer OFFSET $${offsetParam}::integer`;
 
-    // Push sebagai number
     params.push(limit);
     params.push(offset);
+    
     // === Eksekusi query utama ===
     const result = await query(sql, params);
 
-    // === Response sesuai ekspektasi frontend ===
+    // Transform data untuk memastikan status konsisten
+    const transformedData = result.rows.map(row => transformMembershipData(row));
+
+    // === Response ===
     return NextResponse.json({
       success: true,
-      data: result.rows,
+      data: transformedData,
       pagination: {
         total,
         limit,
@@ -91,6 +112,7 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 
 // === POST: Daftar membership baru (Pelanggan & Admin) ===
 export async function POST(request: NextRequest) {
@@ -177,7 +199,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// === PUT: Edit membership (Admin only) ===
+// Dalam app/api/membership/route.ts - PUT method
 export async function PUT(request: NextRequest) {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return unauthorized();
@@ -193,16 +215,46 @@ export async function PUT(request: NextRequest) {
     if (!id) return NextResponse.json({ error: 'ID diperlukan' }, { status: 400 });
 
     const body = await request.json();
-    const { tanggal_daftar, tier_membership, expired_date } = body;
+    const { 
+      pelanggan_id,
+      tanggal_daftar,
+      tier_membership, 
+      expired_date 
+    } = body;
 
-    const status_keaktifan = new Date(expired_date) < new Date() ? 'expired' : 'active';
+    // Validasi data yang diterima
+    if (!pelanggan_id || !tanggal_daftar || !tier_membership || !expired_date) {
+      return NextResponse.json(
+        { error: 'Semua field wajib diisi' },
+        { status: 400 }
+      );
+    }
+
+    // Hitung status berdasarkan expired_date
+    const today = new Date();
+    const expiredDate = new Date(expired_date);
+    today.setHours(0, 0, 0, 0);
+    expiredDate.setHours(0, 0, 0, 0);
+    
+    const status_keaktifan = expiredDate < today ? 'expired' : 'active';
 
     const result = await query(
       `UPDATE membership SET 
-         tanggal_daftar = $1, tier_membership = $2, expired_date = $3, status_keaktifan = $4
-       WHERE membership_id = $5
+         pelanggan_id = $1,
+         tanggal_daftar = $2,
+         tier_membership = $3, 
+         expired_date = $4, 
+         status_keaktifan = $5
+       WHERE membership_id = $6
        RETURNING *`,
-      [tanggal_daftar, tier_membership, expired_date, status_keaktifan, id]
+      [
+        pelanggan_id,
+        tanggal_daftar,
+        tier_membership, 
+        expired_date, 
+        status_keaktifan, 
+        id
+      ]
     );
 
     if (result.rows.length === 0) {
@@ -211,8 +263,20 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: result.rows[0] });
 
-  } catch (error) {
-    return serverError();
+  } catch (error: any) {
+    console.error('PUT /api/membership error:', error);
+    
+    if (error.code === '23503') {
+      return NextResponse.json(
+        { error: 'Pelanggan tidak ditemukan' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Gagal mengupdate membership' },
+      { status: 500 }
+    );
   }
 }
 

@@ -11,10 +11,20 @@ export interface Membership {
   telepon: string;
 }
 
-// TAMBAHKAN INI!
+export type MembershipTier = 'Silver' | 'Gold' | 'Platinum';
+
 export interface CreateMembershipData {
+  membership_id?: string;
   pelanggan_id: string;
   tanggal_daftar: string;
-  tier_membership: 'Silver' | 'Gold' | 'Platinum';
+  tier_membership: MembershipTier;
+  expired_date: string;
+}
+
+export interface UpdateMembershipData {
+  membership_id?: string;
+  pelanggan_id: string;
+  tanggal_daftar: string;
+  tier_membership: MembershipTier;
   expired_date: string;
 }
